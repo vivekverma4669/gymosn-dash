@@ -8,7 +8,7 @@ export const AuthLayout: React.FC = () => {
     <div className="min-h-screen w-full bg-background flex flex-col justify-between relative overflow-hidden">
       {/* Dynamic Background Gradients */}
       <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-orange-600/10 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
 
       {/* Header */}
       <header className="flex items-center justify-between p-6 z-10">

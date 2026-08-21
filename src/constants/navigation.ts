@@ -15,6 +15,7 @@ import {
   HelpCircle,
   RefreshCw,
   MessageSquare,
+  ClipboardList,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -37,6 +38,12 @@ export const SIDEBAR_NAV_ITEMS: NavItem[] = [
     href: '/members',
     icon: Users,
     description: 'Manage active, expired, and pending gym members',
+  },
+  {
+    title: 'Enquiries',
+    href: '/enquiries',
+    icon: ClipboardList,
+    description: 'Track walk-ins and callers who haven\'t joined yet',
   },
   {
     title: 'Renewals',

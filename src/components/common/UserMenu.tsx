@@ -2,17 +2,38 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Settings, LogOut, Building2, Sun, Moon, Monitor, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../utils/cn';
+
+const ROLE_LABEL: Record<string, string> = {
+  GYM_OWNER: 'Gym Owner',
+  TRAINER: 'Trainer',
+  SUPERADMIN: 'Super Admin',
+};
+
+const initialsOf = (name: string): string =>
+  name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 
 export const UserMenu: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsOpen(false);
-    navigate('/login');
+    await logout();
+    navigate('/login', { replace: true });
   };
+
+  const displayName = user?.name ?? 'User';
+  const roleLabel = user ? (ROLE_LABEL[user.role] ?? user.role) : '';
+  const initials = initialsOf(displayName);
 
   return (
     <div className="relative">
@@ -21,11 +42,11 @@ export const UserMenu: React.FC = () => {
         className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 pr-3 hover:bg-accent transition-all shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-primary/20"
       >
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground shadow-xs">
-          GY
+          {initials}
         </div>
         <div className="hidden text-left md:block">
-          <p className="text-xs font-bold text-foreground leading-none">Apex Fitness</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">Admin Manager</p>
+          <p className="text-xs font-bold text-foreground leading-none">{displayName}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">{roleLabel}</p>
         </div>
         <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
       </button>
@@ -37,13 +58,13 @@ export const UserMenu: React.FC = () => {
             {/* Header info */}
             <div className="flex items-center gap-3 p-3 bg-muted/40 rounded-xl mb-1 border border-border/40">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground">
-                AF
+                {initials}
               </div>
               <div className="space-y-0.5 overflow-hidden">
-                <p className="text-xs font-bold text-foreground truncate">Alex Morgan</p>
-                <p className="text-[10px] text-muted-foreground truncate">alex@apexfitness.com</p>
+                <p className="text-xs font-bold text-foreground truncate">{displayName}</p>
+                <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary">
-                  <Building2 className="h-3 w-3" /> Apex Fitness Center
+                  <Building2 className="h-3 w-3" /> {roleLabel}
                 </span>
               </div>
             </div>

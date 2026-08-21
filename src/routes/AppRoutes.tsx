@@ -5,16 +5,23 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { PublicLayout } from '../layouts/PublicLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { DashboardLayout } from '../layouts/DashboardLayout';
+import { SuperAdminLayout } from '../layouts/SuperAdminLayout';
+
+/* Auth */
+import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 
 /* Public Pages */
 import { LandingPage } from '../pages/LandingPage';
 import { LoginPage } from '../pages/LoginPage';
-import { RegisterGymPage } from '../pages/RegisterGymPage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
+
+/* Super Admin Pages */
+import { SuperAdminGymsPage } from '../pages/superadmin/SuperAdminGymsPage';
 
 /* Protected Pages */
 import { DashboardPage } from '../pages/DashboardPage';
 import { MembersPage } from '../pages/MembersPage';
+import { EnquiryPage } from '../pages/EnquiryPage';
 import { RenewalsPage } from '../pages/RenewalsPage';
 import { ReminderCenterPage } from '../pages/ReminderCenterPage';
 import { TrainersPage } from '../pages/TrainersPage';
@@ -41,27 +48,38 @@ export const AppRoutes: React.FC = () => {
       {/* Public Auth Routes */}
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterGymPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       </Route>
+      {/* Self-service gym registration is disabled — gyms are onboarded by the Super Admin */}
+      <Route path="/register" element={<Navigate to="/login" replace />} />
 
-      {/* Protected Dashboard Routes */}
-      <Route element={<DashboardLayout />}>
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/members" element={<MembersPage />} />
-        <Route path="/renewals" element={<RenewalsPage />} />
-        <Route path="/reminders" element={<ReminderCenterPage />} />
-        <Route path="/trainers" element={<TrainersPage />} />
-        <Route path="/attendance" element={<AttendancePage />} />
-        <Route path="/memberships" element={<MembershipsPage />} />
-        <Route path="/payments" element={<PaymentsPage />} />
-        <Route path="/workout-plans" element={<WorkoutPlansPage />} />
-        <Route path="/diet-plans" element={<DietPlansPage />} />
-        <Route path="/analytics" element={<AnalyticsPage />} />
-        <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/subscription" element={<SubscriptionPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
+      {/* Protected Super Admin Routes */}
+      <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN']} />}>
+        <Route element={<SuperAdminLayout />}>
+          <Route path="/superadmin/gyms" element={<SuperAdminGymsPage />} />
+        </Route>
+      </Route>
+
+      {/* Protected Dashboard Routes (Gym Owner / Trainer) */}
+      <Route element={<ProtectedRoute allowedRoles={['GYM_OWNER', 'TRAINER']} />}>
+        <Route element={<DashboardLayout />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/members" element={<MembersPage />} />
+          <Route path="/enquiries" element={<EnquiryPage />} />
+          <Route path="/renewals" element={<RenewalsPage />} />
+          <Route path="/reminders" element={<ReminderCenterPage />} />
+          <Route path="/trainers" element={<TrainersPage />} />
+          <Route path="/attendance" element={<AttendancePage />} />
+          <Route path="/memberships" element={<MembershipsPage />} />
+          <Route path="/payments" element={<PaymentsPage />} />
+          <Route path="/workout-plans" element={<WorkoutPlansPage />} />
+          <Route path="/diet-plans" element={<DietPlansPage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/subscription" element={<SubscriptionPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+        </Route>
       </Route>
 
       {/* 404 Catch-All */}

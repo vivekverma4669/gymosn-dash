@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../components/common/PageHeader';
 import { StatsCard } from '../components/common/StatsCard';
 import { SearchBar } from '../components/common/SearchBar';
 import { WhatsAppDialog } from '../components/common/WhatsAppDialog';
-import { MOCK_MEMBERS, Member } from '../constants/mockData';
+import { MemberFormDialog } from '../components/common/MemberFormDialog';
+import { Member, MembershipPlan } from '../constants/mockData';
+import { CreateMemberPayload } from '../types/gymData';
+import { AuthUser } from '../types/auth';
+import { api } from '../lib/apiClient';
 import {
   UserCheck,
   UserX,
@@ -22,9 +27,37 @@ export const MembersPage: React.FC = () => {
   const [genderFilter, setGenderFilter] = useState<string>('All');
   const [search, setSearch] = useState('');
   const [selectedWA, setSelectedWA] = useState<{ name: string; phone: string } | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-  // Filtered members list
-  const filteredMembers = MOCK_MEMBERS.filter((m) => {
+  const { data: members } = useQuery({
+    queryKey: ['gym', 'members'],
+    queryFn: () => api.get<Member[]>('/api/gym/members'),
+  });
+
+  const { data: plans } = useQuery({
+    queryKey: ['gym', 'plans'],
+    queryFn: () => api.get<MembershipPlan[]>('/api/gym/plans'),
+  });
+
+  const { data: trainers } = useQuery({
+    queryKey: ['gym', 'trainers'],
+    queryFn: () => api.get<AuthUser[]>('/api/gym/trainers'),
+  });
+
+  const createMemberMutation = useMutation({
+    mutationFn: (input: CreateMemberPayload) => api.post('/api/gym/members', input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gym', 'members'] });
+      queryClient.invalidateQueries({ queryKey: ['gym', 'plans'] });
+    },
+  });
+
+  const memberList = members ?? [];
+  const planList = plans ?? [];
+  const trainerList = trainers ?? [];
+
+  const filteredMembers = memberList.filter((m) => {
     if (statusFilter !== 'All' && m.status !== statusFilter) return false;
     if (planFilter !== 'All' && m.plan !== planFilter) return false;
     if (trainerFilter !== 'All' && m.trainer !== trainerFilter) return false;
@@ -40,14 +73,23 @@ export const MembersPage: React.FC = () => {
     return true;
   });
 
+  const activeCount = memberList.filter((m) => m.status === 'Active').length;
+  const expiringCount = memberList.filter((m) => m.status === 'Expiring Soon').length;
+  const expiredCount = memberList.filter((m) => m.status === 'Expired').length;
+  const pendingFees = memberList.reduce((sum, m) => sum + m.dueAmount, 0);
+  const pendingFeeAccounts = memberList.filter((m) => m.dueAmount > 0).length;
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Member Management CRM"
         description="Filter active, expiring, and inactive members. Manage plans, assign personal trainers, and connect via WhatsApp."
-        badge="450 Total Members"
+        badge={`${memberList.length} Total Members`}
         actions={
-          <button className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
+          <button
+            onClick={() => setIsFormOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95"
+          >
             <UserPlus className="h-4 w-4" /> Add New Member
           </button>
         }
@@ -57,15 +99,15 @@ export const MembersPage: React.FC = () => {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Active Members"
-          value="412"
-          change="91.5% Active Rate"
+          value={activeCount}
+          change={memberList.length ? `${Math.round((activeCount / memberList.length) * 100)}% Active Rate` : 'No members yet'}
           trend="up"
           icon={UserCheck}
           iconBgColor="bg-emerald-500/10 text-emerald-500"
         />
         <StatsCard
           title="Expiring Soon"
-          value="14"
+          value={expiringCount}
           change="Within 7 Days"
           trend="neutral"
           icon={Clock}
@@ -73,7 +115,7 @@ export const MembersPage: React.FC = () => {
         />
         <StatsCard
           title="Expired Members"
-          value="18"
+          value={expiredCount}
           change="Requires Follow-up"
           trend="down"
           icon={UserX}
@@ -81,8 +123,8 @@ export const MembersPage: React.FC = () => {
         />
         <StatsCard
           title="Pending Fees"
-          value="₹14,500"
-          change="5 Accounts"
+          value={`₹${pendingFees.toLocaleString('en-IN')}`}
+          change={`${pendingFeeAccounts} Accounts`}
           trend="down"
           icon={IndianRupee}
           iconBgColor="bg-blue-500/10 text-blue-500"
@@ -117,12 +159,11 @@ export const MembersPage: React.FC = () => {
               className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-hidden"
             >
               <option value="All">All Plans</option>
-              <option value="Monthly">Monthly</option>
-              <option value="Quarterly">Quarterly</option>
-              <option value="Half Yearly">Half Yearly</option>
-              <option value="Yearly">Yearly</option>
-              <option value="Premium">Premium</option>
-              <option value="Personal Training">Personal Training</option>
+              {planList.map((plan) => (
+                <option key={plan.id} value={plan.name}>
+                  {plan.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -135,9 +176,11 @@ export const MembersPage: React.FC = () => {
               className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-hidden"
             >
               <option value="All">All Trainers</option>
-              <option value="Vikram Malhotra">Vikram Malhotra</option>
-              <option value="Ananya Verma">Ananya Verma</option>
-              <option value="Rohan Gupta">Rohan Gupta</option>
+              {trainerList.map((trainer) => (
+                <option key={trainer.id} value={trainer.name}>
+                  {trainer.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -193,7 +236,19 @@ export const MembersPage: React.FC = () => {
                   </div>
                 </td>
 
-                <td className="px-4 py-3.5 font-semibold text-foreground">{member.plan}</td>
+                <td className="px-4 py-3.5">
+                  <p className="font-semibold text-foreground">{member.plan}</p>
+                  {member.agreedPrice !== undefined && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Paying ₹{member.agreedPrice.toLocaleString('en-IN')}
+                      {member.listPrice !== undefined && member.agreedPrice !== member.listPrice && (
+                        <span className="ml-1 rounded-full bg-primary/10 px-1.5 py-0.5 font-bold text-primary">
+                          Custom{member.agreedPrice === 0 ? ' • Free' : ''}
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </td>
 
                 <td className="px-4 py-3.5">
                   <span
@@ -258,6 +313,16 @@ export const MembersPage: React.FC = () => {
           defaultMessage={`Namaste ${selectedWA.name}! Quick message from Apex Fitness Gym.`}
         />
       )}
+
+      <MemberFormDialog
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSave={async (input) => {
+          await createMemberMutation.mutateAsync(input);
+        }}
+        plans={planList}
+        trainers={trainerList}
+      />
     </div>
   );
 };

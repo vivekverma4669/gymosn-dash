@@ -1,9 +1,16 @@
-/**
- * Gymosn Backend Server Entrypoint
- * Multi-Tenant Gym CRM API
- * 
- * Note: Folder structure created for future architectural scalability.
- * Business logic and database models will be implemented in subsequent phases.
- */
+import { createApp } from './app';
+import { env } from './config/env.config';
+import { connectDatabase } from './config/database.config';
+import { logger } from './utils/logger';
 
-console.log('Gymosn SaaS Backend Server Placeholder initialized.');
+const bootstrap = async (): Promise<void> => {
+  await connectDatabase();
+
+  const app = createApp();
+
+  app.listen(env.PORT, () => {
+    logger.info(`Gymosn backend listening on http://localhost:${env.PORT}`);
+  });
+};
+
+bootstrap();

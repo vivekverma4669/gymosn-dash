@@ -50,7 +50,7 @@ export const DashboardLayout: React.FC = () => {
         {/* Sidebar Header / Brand */}
         <div className="flex h-16 items-center justify-between px-4 border-b border-border/60">
           <NavLink to="/dashboard" className="flex items-center gap-3 overflow-hidden">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-orange-600 text-primary-foreground shadow-md shadow-primary/20">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-md shadow-primary/20">
               <Dumbbell className="h-6 w-6 stroke-[2.5]" />
             </div>
             {!isSidebarCollapsed && (

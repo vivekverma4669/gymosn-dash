@@ -9,8 +9,12 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   JWT_SECRET: z.string().min(10, 'JWT_SECRET must be at least 10 characters'),
   JWT_REFRESH_SECRET: z.string().min(10, 'JWT_REFRESH_SECRET must be at least 10 characters'),
+  ACCESS_TOKEN_EXPIRES_IN: z.string().default('15m'),
+  REFRESH_TOKEN_EXPIRES_IN: z.string().default('7d'),
   CLIENT_URL: z.string().default('http://localhost:3000'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
+  SUPERADMIN_EMAIL: z.string().email('SUPERADMIN_EMAIL must be a valid email'),
+  SUPERADMIN_PASSWORD: z.string().min(8, 'SUPERADMIN_PASSWORD must be at least 8 characters'),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -11,7 +11,7 @@ export const SubscriptionPage: React.FC = () => {
         description="Manage your tenant subscription plan, add extra branch locations, and update payment methods."
         badge="Enterprise Pro"
         actions={
-          <button className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-orange-600 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:opacity-90 transition-all active:scale-95">
+          <button className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-4 py-2.5 text-xs font-bold text-white shadow-md hover:opacity-90 transition-all active:scale-95">
             <Sparkles className="h-4 w-4" /> Upgrade Plan
           </button>
         }

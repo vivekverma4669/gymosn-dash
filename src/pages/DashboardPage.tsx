@@ -1,26 +1,15 @@
 import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../components/common/PageHeader';
 import { StatsCard } from '../components/common/StatsCard';
 import { WhatsAppDialog } from '../components/common/WhatsAppDialog';
-import {
-  MOCK_UPCOMING_FEES,
-  MOCK_EXPIRING_MEMBERSHIPS,
-  MOCK_BIRTHDAYS,
-  MOCK_ABSENT_MEMBERS,
-  MOCK_LEAD_FOLLOWUPS,
-  FeeCollectionItem,
-  ExpiringMembershipItem,
-  BirthdayItem,
-  AbsentMemberItem,
-  LeadFollowupItem,
-} from '../constants/mockData';
+import { useAuth } from '../contexts/AuthContext';
+import { api } from '../lib/apiClient';
+import { Member, MembershipPlan, Enquiry } from '../constants/mockData';
 import {
   Users,
-  CalendarCheck,
-  IndianRupee,
   AlertCircle,
   Clock,
-  Cake,
   PhoneCall,
   MessageSquare,
   Phone,
@@ -32,24 +21,60 @@ import {
 import { cn } from '../utils/cn';
 
 export const DashboardPage: React.FC = () => {
-  const [activeActionTab, setActiveActionTab] = useState<
-    'fees' | 'expiring' | 'birthdays' | 'absent' | 'leads'
-  >('fees');
-
+  const { user } = useAuth();
+  const [activeActionTab, setActiveActionTab] = useState<'fees' | 'expiring' | 'leads'>('fees');
   const [waDialogData, setWaDialogData] = useState<{ name: string; phone: string; message: string } | null>(null);
-  const [completedLeadIds, setCompletedLeadIds] = useState<string[]>([]);
-  const [collectedFeeIds, setCollectedFeeIds] = useState<string[]>([]);
+  const queryClient = useQueryClient();
+
+  const { data: members } = useQuery({
+    queryKey: ['gym', 'members'],
+    queryFn: () => api.get<Member[]>('/api/gym/members'),
+  });
+
+  const { data: plans } = useQuery({
+    queryKey: ['gym', 'plans'],
+    queryFn: () => api.get<MembershipPlan[]>('/api/gym/plans'),
+  });
+
+  const { data: enquiries } = useQuery({
+    queryKey: ['gym', 'enquiries'],
+    queryFn: () => api.get<Enquiry[]>('/api/gym/enquiries'),
+  });
+
+  const collectFeeMutation = useMutation({
+    mutationFn: (memberId: string) => api.patch(`/api/gym/members/${memberId}`, { dueAmount: 0 }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['gym', 'members'] }),
+  });
+
+  const markContactedMutation = useMutation({
+    mutationFn: (enquiryId: string) => api.patch(`/api/gym/enquiries/${enquiryId}`, { status: 'Contacted' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['gym', 'enquiries'] }),
+  });
+
+  const memberList = members ?? [];
+  const planList = plans ?? [];
+  const enquiryList = enquiries ?? [];
+
+  const activeMembers = memberList.filter((m) => m.status === 'Active').length;
+  const feesDue = memberList.filter((m) => m.dueAmount > 0).sort((a, b) => b.dueAmount - a.dueAmount);
+  const totalPendingFees = feesDue.reduce((sum, m) => sum + m.dueAmount, 0);
+  const expiringMembers = memberList.filter((m) => m.status === 'Expiring Soon');
+  const pendingLeads = enquiryList
+    .filter((e) => e.status !== 'Converted' && e.status !== 'Lost')
+    .sort((a, b) => a.followUpDate.localeCompare(b.followUpDate));
+
+  const planPrice = (planName: string): number => planList.find((p) => p.name === planName)?.price ?? 0;
 
   return (
     <div className="space-y-8">
       {/* Header */}
       <PageHeader
-        title="Indian Gym Owner Action Dashboard"
-        description="Daily operational command center. Track fee collections, check-ins, member renewals, birthdays, and quick WhatsApp actions."
-        badge="Apex Fitness Gym Branch"
+        title="Gym Owner Action Dashboard"
+        description="Daily operational command center. Track fee collections, membership renewals, and lead follow-ups."
+        badge={user?.name ? `Welcome, ${user.name}` : undefined}
         actions={
           <button
-            onClick={() => window.location.href = '/attendance'}
+            onClick={() => (window.location.href = '/attendance')}
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95"
           >
             <Plus className="h-4 w-4" /> Quick Check-in
@@ -57,73 +82,42 @@ export const DashboardPage: React.FC = () => {
         }
       />
 
-      {/* 1. KPI CARDS SECTION (7 Required Cards with ₹ formatting) */}
+      {/* KPI Cards — only stats backed by real data */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard
-          title="Total Active Members"
-          value="450"
-          change="+14 members this month"
+          title="Total Members"
+          value={memberList.length}
+          change={memberList.length ? `${activeMembers} active` : 'No members yet'}
           trend="up"
           icon={Users}
-          description="Capacity 500"
-        />
-        <StatsCard
-          title="Today's Attendance"
-          value="128 Checked-in"
-          change="82% Peak capacity"
-          trend="up"
-          icon={CalendarCheck}
-          iconBgColor="bg-emerald-500/10 text-emerald-500"
-          description="Morning batch 74 • Evening 54"
-        />
-        <StatsCard
-          title="Today's Revenue"
-          value="₹24,500"
-          change="+₹6,500 vs yesterday"
-          trend="up"
-          icon={IndianRupee}
-          iconBgColor="bg-blue-500/10 text-blue-500"
-          description="UPI ₹18.5k • Cash ₹6k"
         />
         <StatsCard
           title="Pending Fee Collection"
-          value="₹68,000"
-          change="12 Outstanding Dues"
-          trend="down"
+          value={`₹${totalPendingFees.toLocaleString('en-IN')}`}
+          change={`${feesDue.length} Outstanding Dues`}
+          trend={feesDue.length ? 'down' : 'neutral'}
           icon={AlertCircle}
           iconBgColor="bg-rose-500/10 text-rose-500"
-          description="Requires immediate follow-up"
         />
         <StatsCard
           title="Memberships Expiring Soon"
-          value="14 Members"
+          value={expiringMembers.length}
           change="Expiring within 7 days"
           trend="neutral"
           icon={Clock}
           iconBgColor="bg-amber-500/10 text-amber-500"
-          description="Click to open renewals"
         />
         <StatsCard
-          title="Today's Birthdays"
-          value="3 Members"
-          change="Special Wishes Pending"
-          trend="up"
-          icon={Cake}
-          iconBgColor="bg-purple-500/10 text-purple-500"
-          description="Send birthday discount"
-        />
-        <StatsCard
-          title="Pending Follow-ups"
-          value="8 Leads"
-          change="3 Today"
+          title="Pending Enquiry Follow-ups"
+          value={pendingLeads.length}
+          change="Not yet converted or lost"
           trend="neutral"
           icon={PhoneCall}
           iconBgColor="bg-indigo-500/10 text-indigo-500"
-          description="Inbound trial inquiries"
         />
       </div>
 
-      {/* 2. ACTION CENTER SECTION: TODAY'S ACTIONS */}
+      {/* Action Center */}
       <div className="rounded-2xl border border-border bg-card p-6 space-y-6 shadow-sm">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
           <div>
@@ -131,100 +125,70 @@ export const DashboardPage: React.FC = () => {
               Today's Operational Actions <Zap className="h-5 w-5 text-amber-500 fill-amber-500" />
             </h2>
             <p className="text-xs text-muted-foreground">
-              Direct action queues to collect dues, renew plans, wish members, and call absent leads.
+              Direct action queues to collect dues, renew plans, and follow up on leads.
             </p>
           </div>
 
-          {/* Action Tabs */}
           <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-xl border border-border overflow-x-auto w-full sm:w-auto">
             <button
               onClick={() => setActiveActionTab('fees')}
               className={cn(
                 'px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
-                activeActionTab === 'fees'
-                  ? 'bg-card text-foreground shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
+                activeActionTab === 'fees' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              Fees Due ({MOCK_UPCOMING_FEES.length})
+              Fees Due ({feesDue.length})
             </button>
             <button
               onClick={() => setActiveActionTab('expiring')}
               className={cn(
                 'px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
-                activeActionTab === 'expiring'
-                  ? 'bg-card text-foreground shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
+                activeActionTab === 'expiring' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              Expiring ({MOCK_EXPIRING_MEMBERSHIPS.length})
-            </button>
-            <button
-              onClick={() => setActiveActionTab('birthdays')}
-              className={cn(
-                'px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
-                activeActionTab === 'birthdays'
-                  ? 'bg-card text-foreground shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              Birthdays ({MOCK_BIRTHDAYS.length})
-            </button>
-            <button
-              onClick={() => setActiveActionTab('absent')}
-              className={cn(
-                'px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
-                activeActionTab === 'absent'
-                  ? 'bg-card text-foreground shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              Absent 5+ Days ({MOCK_ABSENT_MEMBERS.length})
+              Expiring ({expiringMembers.length})
             </button>
             <button
               onClick={() => setActiveActionTab('leads')}
               className={cn(
                 'px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap',
-                activeActionTab === 'leads'
-                  ? 'bg-card text-foreground shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground'
+                activeActionTab === 'leads' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              Lead Follow-ups ({MOCK_LEAD_FOLLOWUPS.length})
+              Lead Follow-ups ({pendingLeads.length})
             </button>
           </div>
         </div>
 
-        {/* Action Tab Content 1: Upcoming Fee Collection */}
+        {/* Fees Due */}
         {activeActionTab === 'fees' && (
           <div className="space-y-3">
-            {MOCK_UPCOMING_FEES.map((item: FeeCollectionItem) => {
-              const isCollected = collectedFeeIds.includes(item.id);
-              return (
+            {feesDue.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No pending dues. Everyone's paid up.</p>
+            ) : (
+              feesDue.map((member) => (
                 <div
-                  key={item.id}
+                  key={member.id}
                   className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-background hover:border-primary/40 transition-all"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-sm text-foreground">{item.memberName}</h4>
+                      <h4 className="font-bold text-sm text-foreground">{member.name}</h4>
                       <span className="text-[10px] font-semibold text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-full">
-                        {item.dueDate}
+                        Expires {member.expiryDate}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Plan: <strong className="text-foreground">{item.plan}</strong> • Phone:{' '}
-                      <strong className="text-foreground">{item.phone}</strong>
+                      Plan: <strong className="text-foreground">{member.plan}</strong> • Phone:{' '}
+                      <strong className="text-foreground">{member.phone}</strong>
                     </p>
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-base font-black text-primary">
-                      ₹{item.dueAmount.toLocaleString('en-IN')}
-                    </span>
+                    <span className="text-base font-black text-primary">₹{member.dueAmount.toLocaleString('en-IN')}</span>
 
                     <a
-                      href={`tel:${item.phone.replace(/[^0-9]/g, '')}`}
+                      href={`tel:${member.phone.replace(/[^0-9]/g, '')}`}
                       className="p-2 rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-accent"
                       title="Call Member"
                     >
@@ -234,9 +198,9 @@ export const DashboardPage: React.FC = () => {
                     <button
                       onClick={() =>
                         setWaDialogData({
-                          name: item.memberName,
-                          phone: item.phone,
-                          message: `Namaste ${item.memberName}! This is a reminder that your fee payment of ₹${item.dueAmount} for ${item.plan} at Apex Fitness is due. Kindly pay at desk or via UPI to keep your access active.`,
+                          name: member.name,
+                          phone: member.phone,
+                          message: `Namaste ${member.name}! This is a reminder that your fee payment of ₹${member.dueAmount} for ${member.plan} is due. Kindly pay at the desk or via UPI to keep your access active.`,
                         })
                       }
                       className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-600 hover:bg-emerald-500/20"
@@ -245,220 +209,129 @@ export const DashboardPage: React.FC = () => {
                     </button>
 
                     <button
-                      onClick={() => setCollectedFeeIds((prev) => [...prev, item.id])}
-                      disabled={isCollected}
-                      className={cn(
-                        'inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all shadow-xs active:scale-95',
-                        isCollected
-                          ? 'bg-emerald-500 text-white'
-                          : 'bg-primary text-primary-foreground hover:bg-primary/90'
-                      )}
+                      onClick={() => collectFeeMutation.mutate(member.id)}
+                      disabled={collectFeeMutation.isPending}
+                      className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all shadow-xs active:scale-95 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
                     >
-                      {isCollected ? (
-                        <>
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Paid
-                        </>
-                      ) : (
-                        'Collect Fee'
-                      )}
+                      Collect Fee
                     </button>
                   </div>
                 </div>
-              );
-            })}
+              ))
+            )}
           </div>
         )}
 
-        {/* Action Tab Content 2: Membership Expiring */}
+        {/* Expiring Soon */}
         {activeActionTab === 'expiring' && (
           <div className="space-y-3">
-            {MOCK_EXPIRING_MEMBERSHIPS.map((item: ExpiringMembershipItem) => (
-              <div
-                key={item.id}
-                className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-background hover:border-amber-500/40 transition-all"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-bold text-sm text-foreground">{item.memberName}</h4>
-                    <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                      {item.daysRemaining} days remaining
+            {expiringMembers.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No memberships expiring in the next 7 days.</p>
+            ) : (
+              expiringMembers.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-background hover:border-amber-500/40 transition-all"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-sm text-foreground">{member.name}</h4>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Current Plan: <strong className="text-foreground">{member.plan}</strong> • Expiry:{' '}
+                      <strong className="text-foreground">{member.expiryDate}</strong>
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-xs font-bold text-muted-foreground">
+                      Renewal: <span className="text-foreground font-black">₹{planPrice(member.plan).toLocaleString('en-IN')}</span>
                     </span>
+
+                    <button
+                      onClick={() =>
+                        setWaDialogData({
+                          name: member.name,
+                          phone: member.phone,
+                          message: `Namaste ${member.name}! Your ${member.plan} plan expires on ${member.expiryDate}. Renew now to keep your access active!`,
+                        })
+                      }
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-600 hover:bg-emerald-500/20"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" /> WhatsApp
+                    </button>
+
+                    <button
+                      onClick={() => (window.location.href = '/renewals')}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground shadow-xs hover:bg-primary/90"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" /> Renew Plan
+                    </button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Current Plan: <strong className="text-foreground">{item.currentPlan}</strong> • Expiry:{' '}
-                    <strong className="text-foreground">{item.expiryDate}</strong>
-                  </p>
                 </div>
-
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-xs font-bold text-muted-foreground">
-                    Renewal: <span className="text-foreground font-black">₹{item.renewalAmount.toLocaleString('en-IN')}</span>
-                  </span>
-
-                  <button
-                    onClick={() =>
-                      setWaDialogData({
-                        name: item.memberName,
-                        phone: item.phone,
-                        message: `Namaste ${item.memberName}! Your ${item.currentPlan} at Apex Fitness expires in ${item.daysRemaining} days (${item.expiryDate}). Renew now to maintain your progress!`,
-                      })
-                    }
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-600 hover:bg-emerald-500/20"
-                  >
-                    <MessageSquare className="h-3.5 w-3.5" /> WhatsApp
-                  </button>
-
-                  <button
-                    onClick={() => window.location.href = '/renewals'}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground shadow-xs hover:bg-primary/90"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" /> Renew Plan
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         )}
 
-        {/* Action Tab Content 3: Today's Birthdays */}
-        {activeActionTab === 'birthdays' && (
-          <div className="space-y-3">
-            {MOCK_BIRTHDAYS.map((item: BirthdayItem) => (
-              <div
-                key={item.id}
-                className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-purple-500/30 bg-purple-500/5 transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-500">
-                    <Cake className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm text-foreground">{item.memberName} ({item.age} yrs)</h4>
-                    <p className="text-xs text-muted-foreground">{item.plan} • Turning {item.age} Today 🎉</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() =>
-                      setWaDialogData({
-                        name: item.memberName,
-                        phone: item.phone,
-                        message: `🎂 Happy Birthday ${item.memberName}! Wishing you maximum gains and peak fitness from Apex Fitness Gym! Enjoy a complimentary protein shake at reception today! 🥳`,
-                      })
-                    }
-                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition-all"
-                  >
-                    <MessageSquare className="h-4 w-4" /> Send Birthday Wish
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Action Tab Content 4: Members Absent for 5+ Days */}
-        {activeActionTab === 'absent' && (
-          <div className="space-y-3">
-            {MOCK_ABSENT_MEMBERS.map((item: AbsentMemberItem) => (
-              <div
-                key={item.id}
-                className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-background hover:border-rose-500/40 transition-all"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-bold text-sm text-foreground">{item.memberName}</h4>
-                    <span className="text-[10px] font-bold text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-full">
-                      Absent {item.daysAbsent} days
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Last Check-in: <strong className="text-foreground">{item.lastCheckInDate}</strong> • Trainer:{' '}
-                    <strong className="text-foreground">{item.assignedTrainer}</strong>
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <a
-                    href={`tel:${item.phone.replace(/[^0-9]/g, '')}`}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-accent"
-                  >
-                    <Phone className="h-3.5 w-3.5" /> Call
-                  </a>
-
-                  <button
-                    onClick={() =>
-                      setWaDialogData({
-                        name: item.memberName,
-                        phone: item.phone,
-                        message: `Hey ${item.memberName}! We noticed you haven't checked in for the last ${item.daysAbsent} days at Apex Fitness. Your trainer ${item.assignedTrainer} is waiting for you! Let's get back on track 💪`,
-                      })
-                    }
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-600 hover:bg-emerald-500/20"
-                  >
-                    <MessageSquare className="h-3.5 w-3.5" /> WhatsApp
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Action Tab Content 5: Pending Lead Follow-ups */}
+        {/* Lead Follow-ups */}
         {activeActionTab === 'leads' && (
           <div className="space-y-3">
-            {MOCK_LEAD_FOLLOWUPS.map((item: LeadFollowupItem) => {
-              const isCompleted = completedLeadIds.includes(item.id);
-              return (
+            {pendingLeads.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No open enquiries need follow-up.</p>
+            ) : (
+              pendingLeads.map((enquiry) => (
                 <div
-                  key={item.id}
+                  key={enquiry.id}
                   className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-background hover:border-primary/40 transition-all"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-sm text-foreground">{item.name}</h4>
+                      <h4 className="font-bold text-sm text-foreground">{enquiry.name}</h4>
                       <span className="text-[10px] font-bold text-indigo-500 bg-indigo-500/10 px-2 py-0.5 rounded-full">
-                        {item.followUpDate}
+                        Follow-up {enquiry.followUpDate}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground line-clamp-1">{item.notes}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-1">
+                      {enquiry.interestedPlan ? `Interested in ${enquiry.interestedPlan}` : enquiry.source}
+                      {enquiry.notes ? ` • ${enquiry.notes}` : ''}
+                    </p>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
                     <a
-                      href={`tel:${item.phone.replace(/[^0-9]/g, '')}`}
+                      href={`tel:${enquiry.phone.replace(/[^0-9]/g, '')}`}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-accent"
                     >
                       <Phone className="h-3.5 w-3.5" /> Call Lead
                     </a>
 
                     <button
-                      onClick={() => setCompletedLeadIds((prev) => [...prev, item.id])}
-                      disabled={isCompleted}
+                      onClick={() => markContactedMutation.mutate(enquiry.id)}
+                      disabled={markContactedMutation.isPending || enquiry.status === 'Contacted'}
                       className={cn(
-                        'inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all shadow-xs active:scale-95',
-                        isCompleted
+                        'inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all shadow-xs active:scale-95 disabled:opacity-60',
+                        enquiry.status === 'Contacted'
                           ? 'bg-emerald-500 text-white'
                           : 'bg-primary text-primary-foreground hover:bg-primary/90'
                       )}
                     >
-                      {isCompleted ? (
+                      {enquiry.status === 'Contacted' ? (
                         <>
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Completed
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Contacted
                         </>
                       ) : (
-                        'Mark Completed'
+                        'Mark Contacted'
                       )}
                     </button>
                   </div>
                 </div>
-              );
-            })}
+              ))
+            )}
           </div>
         )}
       </div>
 
-      {/* WhatsApp Action Dialog */}
       {waDialogData && (
         <WhatsAppDialog
           isOpen={!!waDialogData}

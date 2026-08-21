@@ -3,7 +3,9 @@ export interface Member {
   name: string;
   phone: string;
   email: string;
-  plan: 'Monthly' | 'Quarterly' | 'Half Yearly' | 'Yearly' | 'Premium' | 'Personal Training';
+  plan: string; // references a custom MembershipPlan name — gyms define their own pricing/duration
+  listPrice?: number; // the plan's list price, for comparison against agreedPrice
+  agreedPrice?: number; // actual negotiated price for this member — may differ from listPrice (discounts, free passes, etc)
   status: 'Active' | 'Expired' | 'Expiring Soon' | 'Inactive';
   joiningDate: string;
   expiryDate: string;
@@ -57,6 +59,33 @@ export interface LeadFollowupItem {
   phone: string;
   followUpDate: string;
   status: 'Pending' | 'Contacted' | 'Converted' | 'Lost';
+  notes: string;
+}
+
+/* Custom Membership Plans — every gym sets its own pricing & duration, so plans
+   are gym-defined records rather than a fixed set of tiers. */
+export interface MembershipPlan {
+  id: string;
+  name: string;
+  price: number; // ₹
+  durationValue: number;
+  durationUnit: 'Days' | 'Weeks' | 'Months' | 'Years';
+  description: string;
+  activeMembers: number;
+  isActive: boolean;
+}
+
+export interface Enquiry {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  source: 'Walk-in' | 'Phone Call' | 'Instagram' | 'Referral' | 'Website' | 'Facebook';
+  interestedPlan: string;
+  visitDate: string;
+  followUpDate: string;
+  status: 'New' | 'Contacted' | 'Follow-up' | 'Converted' | 'Lost';
+  assignedTo: string;
   notes: string;
 }
 
@@ -368,6 +397,159 @@ export const MOCK_LEAD_FOLLOWUPS: LeadFollowupItem[] = [
     followUpDate: 'Tomorrow 11:00 AM',
     status: 'Contacted',
     notes: 'Quoted ₹12,000 yearly plan rate.',
+  },
+];
+
+/* Custom Membership Plans Dataset */
+export const MOCK_MEMBERSHIP_PLANS: MembershipPlan[] = [
+  {
+    id: 'PLAN-01',
+    name: 'Monthly',
+    price: 1800,
+    durationValue: 1,
+    durationUnit: 'Months',
+    description: 'Flexible month-to-month gym access.',
+    activeMembers: 1,
+    isActive: true,
+  },
+  {
+    id: 'PLAN-02',
+    name: 'Quarterly',
+    price: 4500,
+    durationValue: 3,
+    durationUnit: 'Months',
+    description: '3-month plan with better value than monthly.',
+    activeMembers: 2,
+    isActive: true,
+  },
+  {
+    id: 'PLAN-03',
+    name: 'Half Yearly',
+    price: 7999,
+    durationValue: 6,
+    durationUnit: 'Months',
+    description: '6-month commitment plan for regulars.',
+    activeMembers: 1,
+    isActive: true,
+  },
+  {
+    id: 'PLAN-04',
+    name: 'Yearly',
+    price: 14999,
+    durationValue: 1,
+    durationUnit: 'Years',
+    description: 'Best value annual membership, unlimited access.',
+    activeMembers: 1,
+    isActive: true,
+  },
+  {
+    id: 'PLAN-05',
+    name: 'Premium',
+    price: 22000,
+    durationValue: 1,
+    durationUnit: 'Years',
+    description: 'Annual plan with premium equipment & spa access.',
+    activeMembers: 1,
+    isActive: true,
+  },
+  {
+    id: 'PLAN-06',
+    name: 'Personal Training',
+    price: 5000,
+    durationValue: 1,
+    durationUnit: 'Months',
+    description: 'Add-on 1:1 personal training sessions, billed monthly.',
+    activeMembers: 1,
+    isActive: true,
+  },
+  {
+    id: 'PLAN-07',
+    name: '45-Day Transformation',
+    price: 3499,
+    durationValue: 45,
+    durationUnit: 'Days',
+    description: 'Short-term challenge plan for a custom fee & duration.',
+    activeMembers: 0,
+    isActive: true,
+  },
+];
+
+/* Enquiry Dataset — visitors who walked in or called but haven't joined yet */
+export const MOCK_ENQUIRIES: Enquiry[] = [
+  {
+    id: 'ENQ-01',
+    name: 'Tarun Verma',
+    phone: '+91 98777 66554',
+    email: 'tarun.verma@gmail.com',
+    source: 'Walk-in',
+    interestedPlan: 'Yearly',
+    visitDate: '2026-08-18',
+    followUpDate: 'Today 04:00 PM',
+    status: 'Follow-up',
+    assignedTo: 'Front Desk',
+    notes: 'Inquired about Annual Membership & Personal Training.',
+  },
+  {
+    id: 'ENQ-02',
+    name: 'Meera Deshmukh',
+    phone: '+91 98111 44332',
+    source: 'Instagram',
+    interestedPlan: 'Monthly',
+    visitDate: '2026-08-19',
+    followUpDate: 'Today 06:30 PM',
+    status: 'New',
+    assignedTo: 'Front Desk',
+    notes: 'Free trial session requested for Zumba/Cardio batch.',
+  },
+  {
+    id: 'ENQ-03',
+    name: 'Gaurav Gill',
+    phone: '+91 99554 43322',
+    email: 'gaurav.gill@outlook.com',
+    source: 'Referral',
+    interestedPlan: 'Yearly',
+    visitDate: '2026-08-15',
+    followUpDate: 'Tomorrow 11:00 AM',
+    status: 'Contacted',
+    assignedTo: 'Vikram Malhotra',
+    notes: 'Quoted ₹12,000 yearly plan rate. Referred by Rahul Sharma.',
+  },
+  {
+    id: 'ENQ-04',
+    name: 'Ishita Bhatt',
+    phone: '+91 97223 34455',
+    source: 'Website',
+    interestedPlan: 'Quarterly',
+    visitDate: '2026-08-12',
+    followUpDate: '2026-08-13',
+    status: 'Converted',
+    assignedTo: 'Ananya Verma',
+    notes: 'Converted to Quarterly plan, now MEM-108.',
+  },
+  {
+    id: 'ENQ-05',
+    name: 'Sameer Joshi',
+    phone: '+91 96887 12233',
+    source: 'Phone Call',
+    interestedPlan: 'Monthly',
+    visitDate: '2026-08-05',
+    followUpDate: '2026-08-07',
+    status: 'Lost',
+    assignedTo: 'Rohan Gupta',
+    notes: 'Went with a gym closer to home.',
+  },
+  {
+    id: 'ENQ-06',
+    name: 'Divya Nair',
+    phone: '+91 95667 78899',
+    email: 'divya.nair@gmail.com',
+    source: 'Facebook',
+    interestedPlan: '45-Day Transformation',
+    visitDate: '2026-08-19',
+    followUpDate: 'Today 05:00 PM',
+    status: 'New',
+    assignedTo: 'Front Desk',
+    notes: 'Asked about the 45-day transformation challenge pricing.',
   },
 ];
 
