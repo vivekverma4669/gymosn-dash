@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, X, AlertCircle } from 'lucide-react';
+import { SubscriptionTier } from '../../types/gym';
 
 export interface CreateGymInput {
   gymName: string;
   ownerName: string;
   ownerEmail: string;
   ownerPassword: string;
+  subscriptionTier: SubscriptionTier;
 }
 
 interface GymFormDialogProps {
@@ -15,7 +17,13 @@ interface GymFormDialogProps {
   onSave: (input: CreateGymInput) => Promise<void>;
 }
 
-const emptyForm: CreateGymInput = { gymName: '', ownerName: '', ownerEmail: '', ownerPassword: '' };
+const emptyForm: CreateGymInput = {
+  gymName: '',
+  ownerName: '',
+  ownerEmail: '',
+  ownerPassword: '',
+  subscriptionTier: 'BASIC',
+};
 
 export const GymFormDialog: React.FC<GymFormDialogProps> = ({ isOpen, onClose, onSave }) => {
   const [form, setForm] = useState<CreateGymInput>(emptyForm);
@@ -133,6 +141,19 @@ export const GymFormDialog: React.FC<GymFormDialogProps> = ({ isOpen, onClose, o
                   placeholder="At least 8 characters"
                   className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
                 />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Subscription Tier</label>
+                <select
+                  value={form.subscriptionTier}
+                  onChange={(e) => setForm((f) => ({ ...f, subscriptionTier: e.target.value as SubscriptionTier }))}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:border-primary focus:outline-hidden"
+                >
+                  <option value="BASIC">Basic (₹499) — no WhatsApp automation</option>
+                  <option value="PROFESSIONAL">Professional (₹999) — automated reminders + birthday wishes</option>
+                  <option value="ENTERPRISE">Enterprise (₹1,499) — custom</option>
+                </select>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-border/60">

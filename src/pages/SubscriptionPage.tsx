@@ -7,7 +7,7 @@ export const SubscriptionPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Gymosn SaaS Billing & Plan"
+        title="Fitdesk SaaS Billing & Plan"
         description="Manage your tenant subscription plan, add extra branch locations, and update payment methods."
         badge="Enterprise Pro"
         actions={

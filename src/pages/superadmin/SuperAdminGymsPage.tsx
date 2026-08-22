@@ -5,7 +5,7 @@ import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState } from '../../components/common/EmptyState';
 import { GymFormDialog, CreateGymInput } from '../../components/common/GymFormDialog';
 import { api } from '../../lib/apiClient';
-import { GymSummary } from '../../types/gym';
+import { GymSummary, SubscriptionTier } from '../../types/gym';
 
 export const SuperAdminGymsPage: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -24,6 +24,12 @@ export const SuperAdminGymsPage: React.FC = () => {
   const toggleActiveMutation = useMutation({
     mutationFn: ({ gymId, isActive }: { gymId: string; isActive: boolean }) =>
       api.patch(`/api/superadmin/gyms/${gymId}/active`, { isActive }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['superadmin', 'gyms'] }),
+  });
+
+  const updateTierMutation = useMutation({
+    mutationFn: ({ gymId, subscriptionTier }: { gymId: string; subscriptionTier: SubscriptionTier }) =>
+      api.patch(`/api/superadmin/gyms/${gymId}/tier`, { subscriptionTier }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['superadmin', 'gyms'] }),
   });
 
@@ -60,6 +66,7 @@ export const SuperAdminGymsPage: React.FC = () => {
                 <th className="px-5 py-3">Gym</th>
                 <th className="px-5 py-3">Owner</th>
                 <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3">Tier</th>
                 <th className="px-5 py-3">Created</th>
                 <th className="px-5 py-3 text-right">Actions</th>
               </tr>
@@ -85,6 +92,19 @@ export const SuperAdminGymsPage: React.FC = () => {
                     >
                       {gym.isActive ? 'Active' : 'Suspended'}
                     </span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <select
+                      value={gym.subscriptionTier}
+                      onChange={(e) =>
+                        updateTierMutation.mutate({ gymId: gym.id, subscriptionTier: e.target.value as SubscriptionTier })
+                      }
+                      className="rounded-lg border border-border bg-background px-2 py-1 text-xs text-foreground focus:border-primary focus:outline-hidden"
+                    >
+                      <option value="BASIC">Basic</option>
+                      <option value="PROFESSIONAL">Professional</option>
+                      <option value="ENTERPRISE">Enterprise</option>
+                    </select>
                   </td>
                   <td className="px-5 py-3.5 text-muted-foreground">
                     {new Date(gym.createdAt).toLocaleDateString()}

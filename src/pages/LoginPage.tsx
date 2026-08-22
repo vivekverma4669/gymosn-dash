@@ -19,10 +19,9 @@ export const LoginPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const user = await login(email, password);
+      await login(email, password);
       const from = (location.state as { from?: Location })?.from?.pathname;
-      const fallback = user.role === 'SUPERADMIN' ? '/superadmin/gyms' : '/dashboard';
-      navigate(from ?? fallback, { replace: true });
+      navigate(from ?? '/dashboard', { replace: true });
     } catch (err) {
       const message = err instanceof ApiClientError ? err.message : 'Something went wrong. Please try again.';
       setError(message);
@@ -35,7 +34,7 @@ export const LoginPage: React.FC = () => {
     <div className="w-full max-w-md space-y-6">
       <div className="rounded-2xl border border-border bg-card p-8 shadow-xl space-y-6">
         <div className="space-y-2 text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">Sign In to Gymosn</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">Sign In to Fitdesk</h2>
           <p className="text-xs text-muted-foreground">
             Enter your gym tenant credentials to access your portal
           </p>

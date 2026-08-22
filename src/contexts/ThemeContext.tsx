@@ -3,7 +3,7 @@ import { Theme, ThemeContextType } from '../types/theme';
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const THEME_STORAGE_KEY = 'gymosn_theme';
+const THEME_STORAGE_KEY = 'fitdesk_theme';
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode; defaultTheme?: Theme }> = ({
   children,

@@ -6,6 +6,7 @@ interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
+  systemLogin: (email: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
 }
 
@@ -35,6 +36,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return data.user;
   }, []);
 
+  const systemLogin = useCallback(async (email: string, password: string): Promise<AuthUser> => {
+    const data = await api.post<{ user: AuthUser; accessToken: string }>('/api/auth/system-login', {
+      email,
+      password,
+    });
+    setAccessToken(data.accessToken);
+    setUser(data.user);
+    return data.user;
+  }, []);
+
   const logout = useCallback(async (): Promise<void> => {
     try {
       await api.post('/api/auth/logout');
@@ -44,7 +55,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const value = useMemo(() => ({ user, isLoading, login, logout }), [user, isLoading, login, logout]);
+  const value = useMemo(
+    () => ({ user, isLoading, login, systemLogin, logout }),
+    [user, isLoading, login, systemLogin, logout]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

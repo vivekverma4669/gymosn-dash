@@ -1,3 +1,5 @@
+export type SubscriptionTier = 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE';
+
 export interface GymOwnerSummary {
   name: string;
   email: string;
@@ -9,6 +11,7 @@ export interface GymSummary {
   name: string;
   slug: string;
   isActive: boolean;
+  subscriptionTier: SubscriptionTier;
   createdAt: string;
   owner: GymOwnerSummary;
 }

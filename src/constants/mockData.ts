@@ -9,6 +9,7 @@ export interface Member {
   status: 'Active' | 'Expired' | 'Expiring Soon' | 'Inactive';
   joiningDate: string;
   expiryDate: string;
+  dateOfBirth?: string | null;
   dueAmount: number; // in INR ₹
   lastCheckIn: string;
   trainer: string;

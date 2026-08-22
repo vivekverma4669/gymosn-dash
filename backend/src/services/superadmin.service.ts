@@ -39,13 +39,21 @@ export const createGymWithOwner = async (input: CreateGymInput, creatorId: strin
     name: input.gymName,
     slug,
     ownerUser: owner._id,
+    subscriptionTier: input.subscriptionTier,
   });
 
   owner.gym = gym._id as typeof owner.gym;
   await owner.save();
 
   return {
-    gym: { id: gym.id, name: gym.name, slug: gym.slug, isActive: gym.isActive, createdAt: gym.createdAt },
+    gym: {
+      id: gym.id,
+      name: gym.name,
+      slug: gym.slug,
+      isActive: gym.isActive,
+      subscriptionTier: gym.subscriptionTier,
+      createdAt: gym.createdAt,
+    },
     owner: sanitizeUser(owner),
   };
 };
@@ -57,9 +65,19 @@ export const listGyms = async () => {
     name: g.name,
     slug: g.slug,
     isActive: g.isActive,
+    subscriptionTier: g.subscriptionTier,
     createdAt: g.createdAt,
     owner: g.ownerUser,
   }));
+};
+
+export const setGymTier = async (gymId: string, subscriptionTier: 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE') => {
+  const gym = await Gym.findById(gymId);
+  if (!gym) {
+    throw ApiError.notFound('Gym not found');
+  }
+  gym.subscriptionTier = subscriptionTier;
+  await gym.save();
 };
 
 export const resetGymOwnerPassword = async (gymOwnerId: string, newPassword: string) => {

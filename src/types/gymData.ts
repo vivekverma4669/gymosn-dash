@@ -20,6 +20,7 @@ export interface CreateMemberPayload {
   plan: string;
   trainer?: string;
   joiningDate: string;
+  dateOfBirth?: string;
   agreedPrice?: number;
   dueAmount?: number;
   gender: Member['gender'];

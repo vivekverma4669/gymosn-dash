@@ -1,8 +1,9 @@
 import React from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
-import { Dumbbell, Sparkles, LogOut, ShieldCheck } from 'lucide-react';
+import { Sparkles, LogOut, ShieldCheck } from 'lucide-react';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
+import { BrandLogo } from '../components/common/BrandLogo';
 
 export const SuperAdminLayout: React.FC = () => {
   const { user, logout } = useAuth();
@@ -10,18 +11,16 @@ export const SuperAdminLayout: React.FC = () => {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login', { replace: true });
+    navigate('/system-console/login', { replace: true });
   };
 
   return (
     <div className="min-h-screen w-full bg-background">
       <header className="flex items-center justify-between border-b border-border/80 bg-card/80 px-6 py-4 backdrop-blur-md">
         <Link to="/superadmin/gyms" className="flex items-center gap-2.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20">
-            <Dumbbell className="h-6 w-6 stroke-[2.5]" />
-          </div>
+          <BrandLogo className="h-10 w-10" />
           <span className="text-xl font-black tracking-tight text-foreground flex items-center gap-1">
-            Gymosn <Sparkles className="h-4 w-4 text-primary" />
+            Fitdesk <Sparkles className="h-4 w-4 text-primary" />
           </span>
           <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary border border-primary/20">
             <ShieldCheck className="h-3 w-3" /> Super Admin

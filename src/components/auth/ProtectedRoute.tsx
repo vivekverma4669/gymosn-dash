@@ -20,7 +20,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) 
   }
 
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    const isSuperAdminOnly = allowedRoles?.length === 1 && allowedRoles[0] === 'SUPERADMIN';
+    const loginPath = isSuperAdminOnly ? '/system-console/login' : '/login';
+    return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {

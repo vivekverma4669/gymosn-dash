@@ -23,6 +23,14 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   return ApiResponse.success(res, { message: 'Login successful', data: { user, accessToken } });
 });
 
+export const systemLogin = asyncHandler(async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+  const { user, accessToken, refreshToken } = await authService.superadminLogin(email, password);
+
+  res.cookie(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions);
+  return ApiResponse.success(res, { message: 'Login successful', data: { user, accessToken } });
+});
+
 export const refresh = asyncHandler(async (req: Request, res: Response) => {
   const token = req.cookies?.[REFRESH_COOKIE_NAME];
   if (!token) {

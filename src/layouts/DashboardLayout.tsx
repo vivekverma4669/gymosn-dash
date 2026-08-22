@@ -6,7 +6,6 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Dumbbell,
   Search,
   Sparkles,
 } from 'lucide-react';
@@ -16,6 +15,7 @@ import { SearchBar } from '../components/common/SearchBar';
 import { NotificationDropdown } from '../components/common/NotificationDropdown';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { UserMenu } from '../components/common/UserMenu';
+import { BrandLogo } from '../components/common/BrandLogo';
 import { cn } from '../utils/cn';
 
 export const DashboardLayout: React.FC = () => {
@@ -50,9 +50,7 @@ export const DashboardLayout: React.FC = () => {
         {/* Sidebar Header / Brand */}
         <div className="flex h-16 items-center justify-between px-4 border-b border-border/60">
           <NavLink to="/dashboard" className="flex items-center gap-3 overflow-hidden">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-md shadow-primary/20">
-              <Dumbbell className="h-6 w-6 stroke-[2.5]" />
-            </div>
+            <BrandLogo className="h-10 w-10" />
             {!isSidebarCollapsed && (
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
@@ -60,7 +58,7 @@ export const DashboardLayout: React.FC = () => {
                 className="flex flex-col"
               >
                 <span className="text-lg font-black tracking-tight text-foreground flex items-center gap-1">
-                  Gymosn <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  Fitdesk <Sparkles className="h-3.5 w-3.5 text-primary" />
                 </span>
                 <span className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
                   Multi-Tenant CRM

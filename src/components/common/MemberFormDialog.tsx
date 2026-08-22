@@ -22,6 +22,7 @@ const emptyForm: CreateMemberPayload = {
   plan: '',
   trainer: '',
   joiningDate: todayIsoDate(),
+  dateOfBirth: '',
   agreedPrice: 0,
   dueAmount: 0,
   gender: 'Male' as Member['gender'],
@@ -60,6 +61,7 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
         ...form,
         trainer: form.trainer || undefined,
         email: form.email || undefined,
+        dateOfBirth: form.dateOfBirth || undefined,
         agreedPrice: Number(form.agreedPrice) || 0,
         dueAmount: Number(form.dueAmount) || 0,
         age: Number(form.age) || 0,
@@ -189,7 +191,7 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-foreground">Joining Date</label>
                     <input
@@ -200,6 +202,20 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
                       className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:border-primary focus:outline-hidden"
                     />
                   </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-foreground">Date of Birth (optional)</label>
+                    <input
+                      type="date"
+                      value={form.dateOfBirth}
+                      max={todayIsoDate()}
+                      onChange={(e) => setForm((f) => ({ ...f, dateOfBirth: e.target.value }))}
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:border-primary focus:outline-hidden"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Used for automated birthday wishes.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-foreground">Gender</label>
                     <select

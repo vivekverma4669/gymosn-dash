@@ -16,7 +16,11 @@ import { LoginPage } from '../pages/LoginPage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 
 /* Super Admin Pages */
+import { SuperAdminLoginPage } from '../pages/SuperAdminLoginPage';
 import { SuperAdminGymsPage } from '../pages/superadmin/SuperAdminGymsPage';
+
+/* Public Kiosk Pages */
+import { CheckInKioskPage } from '../pages/public/CheckInKioskPage';
 
 /* Protected Pages */
 import { DashboardPage } from '../pages/DashboardPage';
@@ -52,6 +56,12 @@ export const AppRoutes: React.FC = () => {
       </Route>
       {/* Self-service gym registration is disabled — gyms are onboarded by the Super Admin */}
       <Route path="/register" element={<Navigate to="/login" replace />} />
+
+      {/* Public QR self check-in kiosk — no login, reachable from a member's own phone */}
+      <Route path="/checkin/:gymId" element={<CheckInKioskPage />} />
+
+      {/* Super Admin login — deliberately separate from /login, not linked anywhere in the UI */}
+      <Route path="/system-console/login" element={<SuperAdminLoginPage />} />
 
       {/* Protected Super Admin Routes */}
       <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN']} />}>

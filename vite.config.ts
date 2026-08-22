@@ -13,6 +13,7 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
+    host: true, // listen on LAN too, so phones can reach the QR self check-in kiosk page
     proxy: {
       '/api': {
         target: 'http://localhost:5000',

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   Users,
   QrCode,
@@ -7,13 +6,22 @@ import {
   Salad,
   BarChart3,
   UserCog,
-  ArrowRight,
+  MessageCircle,
   PlayCircle,
   CheckCircle2,
   ChevronDown,
   Star,
+  ClipboardList,
+  RefreshCw,
+  Receipt,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { BookDemoDialog } from '../components/common/BookDemoDialog';
+
+const WHATSAPP_NUMBER = '919369546165';
+const whatsappLink = (text: string): string =>
+  `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+const TRIAL_WHATSAPP_MESSAGE = "Hi! I'm interested in the 15-day free Fitdesk trial for my gym.";
 
 const FEATURES = [
   {
@@ -23,6 +31,12 @@ const FEATURES = [
       'A complete CRM for every member — profiles, plans, attendance, payments, and progress in one view.',
   },
   {
+    icon: ClipboardList,
+    title: 'Enquiry & Lead Tracking',
+    description:
+      'Log walk-ins and phone enquiries, follow up on time, and convert more prospects into paying members.',
+  },
+  {
     icon: QrCode,
     title: 'QR Attendance',
     description:
@@ -30,6 +44,24 @@ const FEATURES = [
   },
   {
     icon: CreditCard,
+    title: 'Membership Plans',
+    description:
+      'Build flexible membership tiers and pricing, then assign, upgrade, or renew them in a couple of clicks.',
+  },
+  {
+    icon: RefreshCw,
+    title: 'Renewals & Reminders',
+    description:
+      'Auto-flag memberships about to expire and send automated WhatsApp reminders before members churn.',
+  },
+  {
+    icon: UserCog,
+    title: 'Trainer Management',
+    description:
+      'Assign trainers to members, track salaries, and measure performance with ratings and load.',
+  },
+  {
+    icon: Receipt,
     title: 'Payments & Invoicing',
     description:
       'Collect via UPI, cards, or Razorpay. Auto-generate GST invoices and send receipts instantly.',
@@ -44,13 +76,7 @@ const FEATURES = [
     icon: BarChart3,
     title: 'Analytics & Reports',
     description:
-      'Revenue, retention, attendance, and growth — beautiful charts that make decisions obvious.',
-  },
-  {
-    icon: UserCog,
-    title: 'Trainer Management',
-    description:
-      'Assign trainers to members, track salaries, and measure performance with ratings and load.',
+      'Revenue, retention, attendance, and growth — beautiful charts and exportable reports that make decisions obvious.',
   },
 ];
 
@@ -84,47 +110,45 @@ const STATS = [
 
 const PLANS = [
   {
-    name: 'Starter',
-    description: 'For single-location gyms getting started.',
-    price: '₹1,499',
+    name: 'Basic',
+    description: 'Core CRM to run your gym’s day-to-day.',
+    price: '₹499',
     popular: false,
     cta: 'Start Free Trial',
     features: [
-      'Up to 200 members',
-      'Attendance tracking',
-      '1 trainer account',
-      'Basic analytics',
+      'Member management & CRM',
+      'Enquiry & lead tracking',
+      'Membership plans & QR attendance',
+      'Payments & GST invoicing',
+      'Manual WhatsApp messaging',
       'Email support',
     ],
   },
   {
     name: 'Professional',
-    description: 'For growing gyms that need automation.',
-    price: '₹3,499',
+    description: 'Renewals and wishes that run on autopilot.',
+    price: '₹999',
     popular: true,
     cta: 'Start Free Trial',
     features: [
-      'Up to 1,000 members',
-      'QR check-in & attendance',
-      'Unlimited trainers',
+      'Everything in Basic',
+      'Automated WhatsApp renewal & fee reminders',
+      'Automated birthday wishes on WhatsApp',
       'Advanced analytics & reports',
-      'Razorpay & invoice automation',
       'Priority support',
     ],
   },
   {
     name: 'Enterprise',
-    description: 'For multi-location gym chains.',
-    price: '₹7,999',
+    description: 'Tailored to exactly how your gym runs.',
+    price: '₹1,499',
     popular: false,
     cta: 'Contact Sales',
     features: [
-      'Unlimited members',
-      'Multi-branch dashboard',
-      'Custom branded app',
-      'API access & integrations',
-      'Dedicated account manager',
-      '24/7 phone support',
+      'Everything in Professional',
+      'Additional features customized to your gym',
+      'Dedicated onboarding call before go-live',
+      'Priority feature requests',
     ],
   },
 ];
@@ -135,7 +159,7 @@ const TESTIMONIALS = [
     name: 'Arjun Mehta',
     role: 'Owner, IronCore Fitness — Bengaluru',
     quote:
-      'Gymosn replaced three different tools for us. Attendance, payments, and renewals all happen in one place now. My front desk runs itself.',
+      'Fitdesk replaced three different tools for us. Attendance, payments, and renewals all happen in one place now. My front desk runs itself.',
   },
   {
     initials: 'PS',
@@ -155,15 +179,15 @@ const TESTIMONIALS = [
 
 const FAQS = [
   {
-    q: 'Is Gymosn built for gyms in India?',
-    a: 'Yes. Gymosn supports GST invoicing, UPI and Razorpay payments, WhatsApp notifications, and Indian currency out of the box — designed for how Indian gyms actually operate.',
+    q: 'Is Fitdesk built for gyms in India?',
+    a: 'Yes. Fitdesk supports GST invoicing, UPI and Razorpay payments, WhatsApp notifications, and Indian currency out of the box — designed for how Indian gyms actually operate.',
   },
   {
-    q: 'Can I try Gymosn before paying?',
-    a: 'Absolutely — every plan starts with a 14-day free trial and no credit card is required to get started.',
+    q: 'Can I try Fitdesk before paying?',
+    a: 'Absolutely — every plan starts with a 15-day free trial and no credit card is required to get started.',
   },
   {
-    q: 'Does Gymosn work on mobile?',
+    q: 'Does Fitdesk work on mobile?',
     a: 'Yes, the dashboard is mobile-first and works beautifully on any phone or tablet for owners, trainers, and front-desk staff.',
   },
   {
@@ -172,7 +196,7 @@ const FAQS = [
   },
   {
     q: 'Can I connect my existing payment system?',
-    a: 'Gymosn integrates with Razorpay and supports UPI, card, and cash collection, with auto-generated GST invoices and receipts.',
+    a: 'Fitdesk integrates with Razorpay and supports UPI, card, and cash collection, with auto-generated GST invoices and receipts.',
   },
   {
     q: 'What happens when my trial ends?',
@@ -182,6 +206,7 @@ const FAQS = [
 
 export const LandingPage: React.FC = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [isDemoOpen, setIsDemoOpen] = useState(false);
 
   return (
     <div className="overflow-hidden">
@@ -212,7 +237,7 @@ export const LandingPage: React.FC = () => {
             transition={{ delay: 0.2 }}
             className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto"
           >
-            Gymosn brings members, trainers, attendance, payments, and analytics into one beautiful dashboard — built for Indian gyms that want to grow.
+            Fitdesk brings members, trainers, attendance, payments, and analytics into one beautiful dashboard — built for Indian gyms that want to grow.
           </motion.p>
 
           <motion.div
@@ -221,23 +246,25 @@ export const LandingPage: React.FC = () => {
             transition={{ delay: 0.3 }}
             className="flex flex-wrap items-center justify-center gap-4 pt-2"
           >
-            <Link
-              to="/register"
+            <a
+              href={whatsappLink(TRIAL_WHATSAPP_MESSAGE)}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 transition-all active:scale-95"
             >
               Start Free Trial
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              to="/dashboard"
+              <MessageCircle className="h-4 w-4" />
+            </a>
+            <button
+              onClick={() => setIsDemoOpen(true)}
               className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-6 py-3.5 text-sm font-semibold text-foreground shadow-xs hover:bg-accent/10 transition-all active:scale-95"
             >
               <PlayCircle className="h-4 w-4" />
               Book Demo
-            </Link>
+            </button>
           </motion.div>
 
-          <p className="text-xs text-muted-foreground">14-day free trial · No credit card required</p>
+          <p className="text-xs text-muted-foreground">15-day free trial · No credit card required</p>
 
           {/* Dashboard preview mock */}
           <motion.div
@@ -251,7 +278,7 @@ export const LandingPage: React.FC = () => {
                 <span className="h-2.5 w-2.5 rounded-full bg-destructive/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-warning/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-success/60" />
-                <span className="ml-3 text-xs text-muted-foreground">app.gymosn.in/dashboard</span>
+                <span className="ml-3 text-xs text-muted-foreground">app.fitdesk.in/dashboard</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-6">
                 {[
@@ -365,7 +392,10 @@ export const LandingPage: React.FC = () => {
         <div className="text-center max-w-2xl mx-auto space-y-3 mb-14">
           <p className="text-xs font-bold tracking-widest text-primary uppercase">Pricing</p>
           <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">Simple, transparent pricing</h2>
-          <p className="text-muted-foreground">Start free for 14 days. Pick a plan when you&apos;re ready.</p>
+          <p className="text-muted-foreground">Start free for 15 days. Pick a plan when you&apos;re ready.</p>
+          <p className="text-xs text-muted-foreground max-w-lg mx-auto">
+            WhatsApp automation (renewal reminders & birthday wishes) runs on the official Meta WhatsApp Business API, which carries a small per-message cost — that&apos;s why it&apos;s a separate tier from core CRM features.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
@@ -391,16 +421,27 @@ export const LandingPage: React.FC = () => {
                 <span className="font-heading text-4xl font-bold text-foreground">{plan.price}</span>
                 <span className="text-sm text-muted-foreground">/mo</span>
               </div>
-              <Link
-                to="/register"
-                className={`block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold transition-all active:scale-95 ${
-                  plan.popular
-                    ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90'
-                    : 'border border-border bg-background text-foreground hover:bg-accent/10'
-                }`}
-              >
-                {plan.cta}
-              </Link>
+              {plan.cta === 'Contact Sales' ? (
+                <button
+                  onClick={() => setIsDemoOpen(true)}
+                  className="block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold transition-all active:scale-95 border border-border bg-background text-foreground hover:bg-accent/10"
+                >
+                  {plan.cta}
+                </button>
+              ) : (
+                <a
+                  href={whatsappLink(`Hi! I'm interested in the ${plan.name} plan for my gym.`)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold transition-all active:scale-95 ${
+                    plan.popular
+                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90'
+                      : 'border border-border bg-background text-foreground hover:bg-accent/10'
+                  }`}
+                >
+                  {plan.cta}
+                </a>
+              )}
               <ul className="space-y-3 pt-2">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2.5 text-sm text-muted-foreground">
@@ -481,26 +522,30 @@ export const LandingPage: React.FC = () => {
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-16 md:py-24 text-center space-y-6">
           <h2 className="font-heading text-3xl sm:text-4xl font-bold text-foreground">Ready to modernize your gym?</h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Join 500+ gyms running smarter with Gymosn. Start your free trial today — no credit card needed.
+            Join 500+ gyms running smarter with Fitdesk. Start your free trial today — no credit card needed.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-            <Link
-              to="/register"
+            <a
+              href={whatsappLink(TRIAL_WHATSAPP_MESSAGE)}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90 transition-all active:scale-95"
             >
               Start Free Trial
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              to="/dashboard"
+              <MessageCircle className="h-4 w-4" />
+            </a>
+            <button
+              onClick={() => setIsDemoOpen(true)}
               className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-6 py-3.5 text-sm font-semibold text-foreground shadow-xs hover:bg-accent/10 transition-all active:scale-95"
             >
               <PlayCircle className="h-4 w-4" />
               Book Demo
-            </Link>
+            </button>
           </div>
         </div>
       </section>
+
+      <BookDemoDialog isOpen={isDemoOpen} onClose={() => setIsDemoOpen(false)} />
     </div>
   );
 };
