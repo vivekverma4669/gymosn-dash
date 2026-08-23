@@ -6,14 +6,11 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Search,
   Sparkles,
   Eye,
 } from 'lucide-react';
 import { SIDEBAR_NAV_ITEMS } from '../constants/navigation';
 import { Breadcrumb } from '../components/common/Breadcrumb';
-import { SearchBar } from '../components/common/SearchBar';
-import { NotificationDropdown } from '../components/common/NotificationDropdown';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { UserMenu } from '../components/common/UserMenu';
 import { BrandLogo } from '../components/common/BrandLogo';
@@ -23,7 +20,6 @@ import { cn } from '../utils/cn';
 export const DashboardLayout: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
   const { gymView, exitGymView } = useAuth();
@@ -176,22 +172,6 @@ export const DashboardLayout: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <SearchBar
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Search members, plans, payments..."
-              className="hidden lg:flex"
-            />
-
-            <button
-              onClick={() => setSearchQuery('')}
-              className="p-2 rounded-xl border border-border bg-card text-muted-foreground hover:bg-accent lg:hidden"
-              title="Search"
-            >
-              <Search className="h-4 w-4" />
-            </button>
-
-            <NotificationDropdown />
             <ThemeToggle />
             <div className="h-6 w-px bg-border/80 mx-1 hidden sm:block" />
             <UserMenu />
