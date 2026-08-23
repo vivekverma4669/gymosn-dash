@@ -19,6 +19,11 @@ export const resetGymOwnerPassword = asyncHandler(async (req: Request, res: Resp
   return ApiResponse.success(res, { message: 'Gym owner password reset' });
 });
 
+export const updateGymOwnerEmail = asyncHandler(async (req: Request, res: Response) => {
+  const owner = await superadminService.updateGymOwnerEmail(req.params.gymOwnerId, req.body.newEmail);
+  return ApiResponse.success(res, { message: 'Gym owner email updated', data: owner });
+});
+
 export const setGymActive = asyncHandler(async (req: Request, res: Response) => {
   await superadminService.setGymActive(req.params.gymId, req.body.isActive);
   return ApiResponse.success(res, { message: 'Gym status updated' });
@@ -32,4 +37,14 @@ export const setGymTier = asyncHandler(async (req: Request, res: Response) => {
 export const triggerReminders = asyncHandler(async (_req: Request, res: Response) => {
   const tally = await runDailyReminders();
   return ApiResponse.success(res, { message: 'Reminder run complete', data: tally });
+});
+
+export const viewGym = asyncHandler(async (req: Request, res: Response) => {
+  const result = await superadminService.viewGymAsOwner(req.params.gymId, req.user!.id);
+  return ApiResponse.success(res, { message: 'Gym view session created', data: result });
+});
+
+export const listAuditLogs = asyncHandler(async (_req: Request, res: Response) => {
+  const logs = await superadminService.listAuditLogs();
+  return ApiResponse.success(res, { message: 'Audit logs fetched', data: logs });
 });

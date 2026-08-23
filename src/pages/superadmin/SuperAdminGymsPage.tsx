@@ -1,15 +1,32 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building2, Plus, Power } from 'lucide-react';
+import { Building2, Eye, KeyRound, Plus, Power } from 'lucide-react';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState } from '../../components/common/EmptyState';
 import { GymFormDialog, CreateGymInput } from '../../components/common/GymFormDialog';
+import { GymCredentialsDialog } from '../../components/common/GymCredentialsDialog';
 import { api } from '../../lib/apiClient';
-import { GymSummary, SubscriptionTier } from '../../types/gym';
+import { useAuth } from '../../contexts/AuthContext';
+import { GymOwnerSummary, GymSummary, SubscriptionTier } from '../../types/gym';
 
 export const SuperAdminGymsPage: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [viewingGymId, setViewingGymId] = useState<string | null>(null);
+  const [credentialsOwner, setCredentialsOwner] = useState<GymOwnerSummary | null>(null);
   const queryClient = useQueryClient();
+  const { viewGymAsOwner } = useAuth();
+  const navigate = useNavigate();
+
+  const handleView = async (gymId: string) => {
+    setViewingGymId(gymId);
+    try {
+      await viewGymAsOwner(gymId);
+      navigate('/dashboard');
+    } finally {
+      setViewingGymId(null);
+    }
+  };
 
   const { data: gyms, isLoading } = useQuery({
     queryKey: ['superadmin', 'gyms'],
@@ -31,6 +48,20 @@ export const SuperAdminGymsPage: React.FC = () => {
     mutationFn: ({ gymId, subscriptionTier }: { gymId: string; subscriptionTier: SubscriptionTier }) =>
       api.patch(`/api/superadmin/gyms/${gymId}/tier`, { subscriptionTier }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['superadmin', 'gyms'] }),
+  });
+
+  const updateEmailMutation = useMutation({
+    mutationFn: ({ gymOwnerId, newEmail }: { gymOwnerId: string; newEmail: string }) =>
+      api.patch(`/api/superadmin/gym-owners/${gymOwnerId}/email`, { newEmail }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['superadmin', 'gyms'] });
+      setCredentialsOwner((prev) => (prev ? { ...prev, email: variables.newEmail } : prev));
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: ({ gymOwnerId, newPassword }: { gymOwnerId: string; newPassword: string }) =>
+      api.post(`/api/superadmin/gym-owners/${gymOwnerId}/reset-password`, { newPassword }),
   });
 
   return (
@@ -112,6 +143,24 @@ export const SuperAdminGymsPage: React.FC = () => {
                   <td className="px-5 py-3.5">
                     <div className="flex items-center justify-end gap-2">
                       <button
+                        onClick={() => handleView(gym.id)}
+                        disabled={viewingGymId === gym.id}
+                        title="View gym dashboard"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        {viewingGymId === gym.id ? 'Opening...' : 'View'}
+                      </button>
+                      <button
+                        onClick={() => gym.owner && setCredentialsOwner(gym.owner)}
+                        disabled={!gym.owner}
+                        title="Manage owner credentials"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+                      >
+                        <KeyRound className="h-3.5 w-3.5" />
+                        Credentials
+                      </button>
+                      <button
                         onClick={() =>
                           toggleActiveMutation.mutate({ gymId: gym.id, isActive: !gym.isActive })
                         }
@@ -135,6 +184,20 @@ export const SuperAdminGymsPage: React.FC = () => {
         onClose={() => setIsDialogOpen(false)}
         onSave={async (input) => {
           await createGymMutation.mutateAsync(input);
+        }}
+      />
+
+      <GymCredentialsDialog
+        isOpen={!!credentialsOwner}
+        owner={credentialsOwner}
+        onClose={() => setCredentialsOwner(null)}
+        onUpdateEmail={async (newEmail) => {
+          if (!credentialsOwner) return;
+          await updateEmailMutation.mutateAsync({ gymOwnerId: credentialsOwner.id, newEmail });
+        }}
+        onResetPassword={async (newPassword) => {
+          if (!credentialsOwner) return;
+          await resetPasswordMutation.mutateAsync({ gymOwnerId: credentialsOwner.id, newPassword });
         }}
       />
     </div>

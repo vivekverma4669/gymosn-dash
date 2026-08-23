@@ -1,9 +1,15 @@
 import React from 'react';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { Outlet, Link, NavLink, useNavigate } from 'react-router-dom';
 import { Sparkles, LogOut, ShieldCheck } from 'lucide-react';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
 import { BrandLogo } from '../components/common/BrandLogo';
+import { cn } from '../utils/cn';
+
+const SUPERADMIN_NAV_ITEMS = [
+  { title: 'Gyms', href: '/superadmin/gyms' },
+  { title: 'Audit Log', href: '/superadmin/audit-log' },
+];
 
 export const SuperAdminLayout: React.FC = () => {
   const { user, logout } = useAuth();
@@ -38,6 +44,27 @@ export const SuperAdminLayout: React.FC = () => {
           </button>
         </div>
       </header>
+
+      <nav className="border-b border-border/60 bg-card/50 px-6">
+        <div className="mx-auto flex max-w-6xl gap-1">
+          {SUPERADMIN_NAV_ITEMS.map((item) => (
+            <NavLink
+              key={item.href}
+              to={item.href}
+              className={({ isActive }) =>
+                cn(
+                  'border-b-2 px-3 py-3 text-xs font-semibold transition-colors',
+                  isActive
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                )
+              }
+            >
+              {item.title}
+            </NavLink>
+          ))}
+        </div>
+      </nav>
 
       <main className="mx-auto max-w-6xl p-4 md:p-8">
         <Outlet />

@@ -18,6 +18,7 @@ import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 /* Super Admin Pages */
 import { SuperAdminLoginPage } from '../pages/SuperAdminLoginPage';
 import { SuperAdminGymsPage } from '../pages/superadmin/SuperAdminGymsPage';
+import { SuperAdminAuditLogPage } from '../pages/superadmin/SuperAdminAuditLogPage';
 
 /* Public Kiosk Pages */
 import { CheckInKioskPage } from '../pages/public/CheckInKioskPage';
@@ -67,6 +68,7 @@ export const AppRoutes: React.FC = () => {
       <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN']} />}>
         <Route element={<SuperAdminLayout />}>
           <Route path="/superadmin/gyms" element={<SuperAdminGymsPage />} />
+          <Route path="/superadmin/audit-log" element={<SuperAdminAuditLogPage />} />
         </Route>
       </Route>
 

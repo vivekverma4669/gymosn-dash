@@ -30,6 +30,8 @@ export const setAccessToken = (token: string | null): void => {
   accessToken = token;
 };
 
+export const getAccessToken = (): string | null => accessToken;
+
 export const setSessionExpiredHandler = (fn: (() => void) | null): void => {
   onSessionExpired = fn;
 };

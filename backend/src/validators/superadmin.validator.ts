@@ -25,3 +25,7 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export const setActiveSchema = z.object({
   isActive: z.boolean(),
 });
+
+export const updateEmailSchema = z.object({
+  newEmail: z.string().email(),
+});

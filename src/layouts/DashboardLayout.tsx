@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Menu,
@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Search,
   Sparkles,
+  Eye,
 } from 'lucide-react';
 import { SIDEBAR_NAV_ITEMS } from '../constants/navigation';
 import { Breadcrumb } from '../components/common/Breadcrumb';
@@ -16,6 +17,7 @@ import { NotificationDropdown } from '../components/common/NotificationDropdown'
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { UserMenu } from '../components/common/UserMenu';
 import { BrandLogo } from '../components/common/BrandLogo';
+import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/cn';
 
 export const DashboardLayout: React.FC = () => {
@@ -23,9 +25,29 @@ export const DashboardLayout: React.FC = () => {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
+  const navigate = useNavigate();
+  const { gymView, exitGymView } = useAuth();
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
+      {gymView && (
+        <div className="flex h-10 shrink-0 items-center justify-center gap-3 bg-primary px-4 text-xs font-semibold text-primary-foreground">
+          <Eye className="h-3.5 w-3.5" />
+          <span>
+            Viewing <strong>{gymView.gymName}</strong> as Super Admin
+          </span>
+          <button
+            onClick={() => {
+              exitGymView();
+              navigate('/superadmin/gyms');
+            }}
+            className="ml-2 rounded-md bg-white/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide hover:bg-white/25 transition-colors"
+          >
+            Exit to Super Admin
+          </button>
+        </div>
+      )}
+      <div className="flex flex-1 w-full overflow-hidden">
       {/* Mobile Backdrop */}
       <AnimatePresence>
         {isMobileSidebarOpen && (
@@ -191,6 +213,7 @@ export const DashboardLayout: React.FC = () => {
             </motion.div>
           </AnimatePresence>
         </main>
+      </div>
       </div>
     </div>
   );

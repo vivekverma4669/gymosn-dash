@@ -1,6 +1,7 @@
 export type SubscriptionTier = 'BASIC' | 'PROFESSIONAL' | 'ENTERPRISE';
 
 export interface GymOwnerSummary {
+  id: string;
   name: string;
   email: string;
   isActive: boolean;
