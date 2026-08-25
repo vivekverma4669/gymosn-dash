@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CalendarClock, X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { api, ApiClientError } from '../../lib/apiClient';
 import { DemoRequestPayload } from '../../types/public';
+import { sanitizePhoneInput } from '../../utils/phone';
 
 interface BookDemoDialogProps {
   isOpen: boolean;
@@ -140,10 +141,12 @@ export const BookDemoDialog: React.FC<BookDemoDialogProps> = ({ isOpen, onClose 
                       <label className="text-xs font-semibold text-foreground">Phone</label>
                       <input
                         type="tel"
+                        inputMode="numeric"
                         required
+                        maxLength={10}
                         value={form.phone}
-                        onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                        placeholder="+91 98765 43210"
+                        onChange={(e) => setForm((f) => ({ ...f, phone: sanitizePhoneInput(e.target.value) }))}
+                        placeholder="9876543210"
                         className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
                       />
                     </div>

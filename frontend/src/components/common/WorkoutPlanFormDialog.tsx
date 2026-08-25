@@ -218,6 +218,7 @@ export const WorkoutPlanFormDialog: React.FC<WorkoutPlanFormDialogProps> = ({
                             onChange={(e) =>
                               updateExercise(dayIndex, exerciseIndex, { sets: Number(e.target.value) })
                             }
+                            onFocus={(e) => e.target.select()}
                             placeholder="Sets"
                             className="col-span-2 rounded-lg border border-border bg-card px-2 py-1.5 text-[11px] text-foreground focus:border-primary focus:outline-hidden"
                           />

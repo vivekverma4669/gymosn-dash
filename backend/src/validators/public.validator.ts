@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
+const phoneSchema = z.string().regex(/^\d{10}$/, 'Enter a valid 10-digit phone number');
+
 export const publicCheckInSchema = z.object({
-  phone: z.string().min(6, 'Enter a valid phone number'),
+  phone: phoneSchema,
 });
 
 export type PublicCheckInInput = z.infer<typeof publicCheckInSchema>;
@@ -9,7 +11,7 @@ export type PublicCheckInInput = z.infer<typeof publicCheckInSchema>;
 export const demoRequestSchema = z.object({
   gymName: z.string().min(2, 'Gym name is required'),
   contactName: z.string().min(2, 'Contact name is required'),
-  phone: z.string().min(6, 'Enter a valid phone number'),
+  phone: phoneSchema,
   email: z.string().email().optional().or(z.literal('')),
   message: z.string().max(1000).optional(),
 });

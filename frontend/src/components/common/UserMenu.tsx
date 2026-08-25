@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Settings, LogOut, Building2, Sun, Moon, Monitor, ChevronDown } from 'lucide-react';
+import { User, LogOut, Building2, Sun, Moon, Monitor, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../utils/cn';
@@ -80,14 +80,6 @@ export const UserMenu: React.FC = () => {
               >
                 <User className="h-4 w-4 text-muted-foreground" />
                 My Profile
-              </Link>
-              <Link
-                to="/settings"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-foreground hover:bg-accent transition-colors"
-              >
-                <Settings className="h-4 w-4 text-muted-foreground" />
-                Gym Settings
               </Link>
             </div>
 

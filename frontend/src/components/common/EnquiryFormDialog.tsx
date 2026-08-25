@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ClipboardList, X, AlertCircle } from 'lucide-react';
 import { Enquiry } from '../../constants/mockData';
 import { CreateEnquiryPayload } from '../../types/gymData';
+import { sanitizePhoneInput } from '../../utils/phone';
 
 interface EnquiryFormDialogProps {
   isOpen: boolean;
@@ -26,21 +27,68 @@ const emptyForm: CreateEnquiryPayload = {
   notes: '',
 };
 
+type FieldErrors = Partial<Record<keyof CreateEnquiryPayload, string>>;
+
+const validateForm = (form: CreateEnquiryPayload): FieldErrors => {
+  const errors: FieldErrors = {};
+
+  if (!form.name.trim()) {
+    errors.name = 'Name is required';
+  } else if (form.name.trim().length < 2) {
+    errors.name = 'Name must be at least 2 characters';
+  }
+
+  const digitsOnly = form.phone.replace(/\D/g, '');
+  if (!form.phone.trim()) {
+    errors.phone = 'Phone number is required';
+  } else if (digitsOnly.length < 10) {
+    errors.phone = 'Enter a valid 10-digit phone number';
+  }
+
+  if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    errors.email = 'Enter a valid email address';
+  }
+
+  if (!form.visitDate) {
+    errors.visitDate = 'Visit date is required';
+  }
+
+  return errors;
+};
+
 export const EnquiryFormDialog: React.FC<EnquiryFormDialogProps> = ({ isOpen, onClose, onSave }) => {
   const [form, setForm] = useState<CreateEnquiryPayload>(emptyForm);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setForm(emptyForm);
       setError(null);
+      setFieldErrors({});
     }
   }, [isOpen]);
+
+  const showError = (field: keyof CreateEnquiryPayload) => fieldErrors[field];
+
+  const inputClass = (field: keyof CreateEnquiryPayload) =>
+    `w-full rounded-xl border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 ${
+      showError(field)
+        ? 'border-rose-500/60 focus:border-rose-500 focus:ring-rose-500/20'
+        : 'border-border focus:border-primary focus:ring-primary/20'
+    }`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    const errors = validateForm(form);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await onSave(form);
@@ -104,19 +152,23 @@ export const EnquiryFormDialog: React.FC<EnquiryFormDialogProps> = ({ isOpen, on
                     value={form.name}
                     onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                     placeholder="Tarun Verma"
-                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
+                    className={inputClass('name')}
                   />
+                  {showError('name') && <p className="text-[10px] font-medium text-rose-500">{showError('name')}</p>}
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-foreground">Phone</label>
                   <input
-                    type="text"
+                    type="tel"
+                    inputMode="numeric"
                     required
+                    maxLength={10}
                     value={form.phone}
-                    onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                    placeholder="+91 98777 66554"
-                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
+                    onChange={(e) => setForm((f) => ({ ...f, phone: sanitizePhoneInput(e.target.value) }))}
+                    placeholder="9877766554"
+                    className={inputClass('phone')}
                   />
+                  {showError('phone') && <p className="text-[10px] font-medium text-rose-500">{showError('phone')}</p>}
                 </div>
               </div>
 
@@ -127,8 +179,9 @@ export const EnquiryFormDialog: React.FC<EnquiryFormDialogProps> = ({ isOpen, on
                   value={form.email}
                   onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                   placeholder="tarun@example.com"
-                  className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
+                  className={inputClass('email')}
                 />
+                {showError('email') && <p className="text-[10px] font-medium text-rose-500">{showError('email')}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -166,8 +219,11 @@ export const EnquiryFormDialog: React.FC<EnquiryFormDialogProps> = ({ isOpen, on
                     required
                     value={form.visitDate}
                     onChange={(e) => setForm((f) => ({ ...f, visitDate: e.target.value }))}
-                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
+                    className={inputClass('visitDate')}
                   />
+                  {showError('visitDate') && (
+                    <p className="text-[10px] font-medium text-rose-500">{showError('visitDate')}</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-foreground">Follow-up Date</label>

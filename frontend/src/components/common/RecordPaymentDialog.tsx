@@ -15,12 +15,12 @@ const METHODS: PaymentMethod[] = ['UPI', 'Cash', 'Card', 'Bank Transfer'];
 
 interface FormState {
   memberId: string;
-  amount: number;
+  amount: string;
   method: PaymentMethod;
   notes: string;
 }
 
-const emptyForm: FormState = { memberId: '', amount: 0, method: 'UPI', notes: '' };
+const emptyForm: FormState = { memberId: '', amount: '', method: 'UPI', notes: '' };
 
 export const RecordPaymentDialog: React.FC<RecordPaymentDialogProps> = ({ isOpen, onClose, onSave, members }) => {
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -33,7 +33,7 @@ export const RecordPaymentDialog: React.FC<RecordPaymentDialogProps> = ({ isOpen
   useEffect(() => {
     if (isOpen) {
       const first = defaultMemberList[0];
-      setForm({ ...emptyForm, memberId: first?.id ?? '', amount: first?.dueAmount ?? 0 });
+      setForm({ ...emptyForm, memberId: first?.id ?? '', amount: first?.dueAmount ? String(first.dueAmount) : '' });
       setError(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -41,7 +41,7 @@ export const RecordPaymentDialog: React.FC<RecordPaymentDialogProps> = ({ isOpen
 
   const handleMemberChange = (memberId: string) => {
     const selected = members.find((m) => m.id === memberId);
-    setForm((f) => ({ ...f, memberId, amount: selected?.dueAmount ?? f.amount }));
+    setForm((f) => ({ ...f, memberId, amount: selected?.dueAmount ? String(selected.dueAmount) : f.amount }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -135,7 +135,9 @@ export const RecordPaymentDialog: React.FC<RecordPaymentDialogProps> = ({ isOpen
                       required
                       min={1}
                       value={form.amount}
-                      onChange={(e) => setForm((f) => ({ ...f, amount: Number(e.target.value) }))}
+                      onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                      onFocus={(e) => e.target.select()}
+                      placeholder="0"
                       className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
                     />
                   </div>

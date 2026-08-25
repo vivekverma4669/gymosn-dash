@@ -6,6 +6,8 @@ import * as attendanceController from '../controllers/attendance.controller';
 import * as paymentController from '../controllers/payment.controller';
 import * as workoutPlanController from '../controllers/workoutPlan.controller';
 import * as dietPlanController from '../controllers/dietPlan.controller';
+import * as analyticsController from '../controllers/analytics.controller';
+import * as reportsController from '../controllers/reports.controller';
 import { authenticate } from '../middlewares/authenticate.middleware';
 import { authorize } from '../middlewares/authorize.middleware';
 import { validate } from '../middlewares/validate.middleware';
@@ -59,5 +61,11 @@ router.get('/diet-plans', dietPlanController.listDietPlans);
 router.post('/diet-plans', validate(createDietPlanSchema), dietPlanController.createDietPlan);
 router.patch('/diet-plans/:planId', validate(updateDietPlanSchema), dietPlanController.updateDietPlan);
 router.delete('/diet-plans/:planId', dietPlanController.deleteDietPlan);
+
+// Analytics
+router.get('/analytics', analyticsController.getAnalytics);
+
+// Reports
+router.get('/reports', reportsController.getReport);
 
 export default router;

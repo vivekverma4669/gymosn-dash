@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Dumbbell, Phone, CheckCircle2, AlertCircle, LogIn } from 'lucide-react';
+import { sanitizePhoneInput } from '../../utils/phone';
 
 interface GymInfo {
   id: string;
@@ -100,11 +101,13 @@ export const CheckInKioskPage: React.FC = () => {
                   <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <input
                     type="tel"
+                    inputMode="numeric"
                     required
                     autoFocus
+                    maxLength={10}
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="98765 43210"
+                    onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))}
+                    placeholder="9876543210"
                     className="w-full rounded-xl border border-border bg-background pl-9 pr-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
                   />
                 </div>

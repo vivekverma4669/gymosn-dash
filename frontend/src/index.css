@@ -39,6 +39,14 @@
     --ring: 217 91% 60%;
 
     --radius: 0.75rem;
+
+    /* Chart categorical series — validated adjacent-pair CVD contrast, fixed order */
+    --chart-1: #2a78d6; /* blue */
+    --chart-2: #eb6834; /* orange */
+    --chart-3: #1baf7a; /* aqua */
+    --chart-4: #eda100; /* yellow */
+    --chart-grid: #e1e0d9;
+    --chart-axis: #c3c2b7;
   }
 
   .dark {
@@ -75,6 +83,13 @@
     --border: 217 33% 20%;
     --input: 217 33% 20%;
     --ring: 217 91% 60%;
+
+    --chart-1: #3987e5;
+    --chart-2: #d95926;
+    --chart-3: #199e70;
+    --chart-4: #c98500;
+    --chart-grid: #2c2c2a;
+    --chart-axis: #383835;
   }
 }
 

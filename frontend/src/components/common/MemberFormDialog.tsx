@@ -4,6 +4,7 @@ import { UserPlus, X, AlertCircle } from 'lucide-react';
 import { Member, MembershipPlan } from '../../constants/mockData';
 import { CreateMemberPayload } from '../../types/gymData';
 import { AuthUser } from '../../types/auth';
+import { sanitizePhoneInput } from '../../utils/phone';
 
 interface MemberFormDialogProps {
   isOpen: boolean;
@@ -15,7 +16,17 @@ interface MemberFormDialogProps {
 
 const todayIsoDate = (): string => new Date().toISOString().slice(0, 10);
 
-const emptyForm: CreateMemberPayload = {
+// age/agreedPrice/dueAmount are kept as raw strings while editing (not numbers) so a cleared
+// field is genuinely empty instead of snapping back to "0" — a forced "0" sits in the DOM and
+// merges with the next keystroke (backspace agreedPrice "1200" down to nothing, type "900",
+// and you'd get "0900" because the input never actually became empty).
+type MemberFormState = Omit<CreateMemberPayload, 'age' | 'agreedPrice' | 'dueAmount'> & {
+  age: string;
+  agreedPrice: string;
+  dueAmount: string;
+};
+
+const emptyForm: MemberFormState = {
   name: '',
   phone: '',
   email: '',
@@ -23,10 +34,60 @@ const emptyForm: CreateMemberPayload = {
   trainer: '',
   joiningDate: todayIsoDate(),
   dateOfBirth: '',
-  agreedPrice: 0,
-  dueAmount: 0,
+  agreedPrice: '',
+  dueAmount: '',
   gender: 'Male' as Member['gender'],
-  age: 25,
+  age: '',
+};
+
+type FieldErrors = Partial<Record<keyof MemberFormState, string>>;
+
+const validateForm = (form: MemberFormState): FieldErrors => {
+  const errors: FieldErrors = {};
+
+  if (!form.name.trim()) {
+    errors.name = 'Name is required';
+  } else if (form.name.trim().length < 2) {
+    errors.name = 'Name must be at least 2 characters';
+  }
+
+  const digitsOnly = form.phone.replace(/\D/g, '');
+  if (!form.phone.trim()) {
+    errors.phone = 'Phone number is required';
+  } else if (digitsOnly.length < 10) {
+    errors.phone = 'Enter a valid 10-digit phone number';
+  }
+
+  if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    errors.email = 'Enter a valid email address';
+  }
+
+  if (!form.plan) {
+    errors.plan = 'Select a membership plan';
+  }
+
+  if (!form.joiningDate) {
+    errors.joiningDate = 'Joining date is required';
+  }
+
+  const age = form.age.trim() === '' ? NaN : Number(form.age);
+  if (Number.isNaN(age) || age < 1) {
+    errors.age = 'Enter a valid age';
+  }
+
+  const agreedPrice = form.agreedPrice.trim() === '' ? NaN : Number(form.agreedPrice);
+  if (Number.isNaN(agreedPrice) || agreedPrice < 0) {
+    errors.agreedPrice = 'Agreed price cannot be negative';
+  }
+
+  const dueAmount = form.dueAmount.trim() === '' ? 0 : Number(form.dueAmount);
+  if (Number.isNaN(dueAmount) || dueAmount < 0) {
+    errors.dueAmount = 'Due amount cannot be negative';
+  } else if (!Number.isNaN(agreedPrice) && dueAmount > agreedPrice) {
+    errors.dueAmount = 'Due amount cannot exceed the agreed price';
+  }
+
+  return errors;
 };
 
 export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
@@ -36,25 +97,49 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
   plans,
   trainers,
 }) => {
-  const [form, setForm] = useState<CreateMemberPayload>(emptyForm);
+  const [form, setForm] = useState<MemberFormState>(emptyForm);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setForm({ ...emptyForm, plan: plans[0]?.id ?? '', agreedPrice: plans[0]?.price ?? 0 });
+      const firstPlanPrice = plans[0]?.price;
+      setForm({ ...emptyForm, plan: plans[0]?.id ?? '', agreedPrice: firstPlanPrice !== undefined ? String(firstPlanPrice) : '' });
       setError(null);
+      setFieldErrors({});
     }
   }, [isOpen, plans]);
 
   const handlePlanChange = (planId: string) => {
     const selectedPlan = plans.find((p) => p.id === planId);
-    setForm((f) => ({ ...f, plan: planId, agreedPrice: selectedPlan?.price ?? f.agreedPrice }));
+    setForm((f) => ({ ...f, plan: planId, agreedPrice: selectedPlan ? String(selectedPlan.price) : f.agreedPrice }));
   };
+
+  const selectOnFocus = (e: React.FocusEvent<HTMLInputElement>) => e.target.select();
+
+  const showError = (field: keyof MemberFormState) => fieldErrors[field];
+
+  const inputClass = (field: keyof MemberFormState) =>
+    `w-full rounded-xl border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 ${
+      showError(field)
+        ? 'border-rose-500/60 focus:border-rose-500 focus:ring-rose-500/20'
+        : 'border-border focus:border-primary focus:ring-primary/20'
+    }`;
+
+  const paidSoFar = Math.max(0, (Number(form.agreedPrice) || 0) - (Number(form.dueAmount) || 0));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    const errors = validateForm(form);
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await onSave({
@@ -131,19 +216,23 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
                       value={form.name}
                       onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                       placeholder="Rahul Sharma"
-                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
+                      className={inputClass('name')}
                     />
+                    {showError('name') && <p className="text-[10px] font-medium text-rose-500">{showError('name')}</p>}
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-foreground">Phone</label>
                     <input
-                      type="text"
+                      type="tel"
+                      inputMode="numeric"
                       required
+                      maxLength={10}
                       value={form.phone}
-                      onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                      placeholder="+91 98765 43210"
-                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
+                      onChange={(e) => setForm((f) => ({ ...f, phone: sanitizePhoneInput(e.target.value) }))}
+                      placeholder="9876543210"
+                      className={inputClass('phone')}
                     />
+                    {showError('phone') && <p className="text-[10px] font-medium text-rose-500">{showError('phone')}</p>}
                   </div>
                 </div>
 
@@ -154,8 +243,9 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
                     value={form.email}
                     onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                     placeholder="rahul@example.com"
-                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
+                    className={inputClass('email')}
                   />
+                  {showError('email') && <p className="text-[10px] font-medium text-rose-500">{showError('email')}</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -165,7 +255,7 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
                       required
                       value={form.plan}
                       onChange={(e) => handlePlanChange(e.target.value)}
-                      className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:border-primary focus:outline-hidden"
+                      className={inputClass('plan')}
                     >
                       {plans.map((plan) => (
                         <option key={plan.id} value={plan.id}>
@@ -173,6 +263,7 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
                         </option>
                       ))}
                     </select>
+                    {showError('plan') && <p className="text-[10px] font-medium text-rose-500">{showError('plan')}</p>}
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-foreground">Trainer (optional)</label>
@@ -199,8 +290,11 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
                       required
                       value={form.joiningDate}
                       onChange={(e) => setForm((f) => ({ ...f, joiningDate: e.target.value }))}
-                      className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:border-primary focus:outline-hidden"
+                      className={inputClass('joiningDate')}
                     />
+                    {showError('joiningDate') && (
+                      <p className="text-[10px] font-medium text-rose-500">{showError('joiningDate')}</p>
+                    )}
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-foreground">Date of Birth (optional)</label>
@@ -233,40 +327,69 @@ export const MemberFormDialog: React.FC<MemberFormDialogProps> = ({
                     <input
                       type="number"
                       required
-                      min={0}
+                      min={1}
                       value={form.age}
-                      onChange={(e) => setForm((f) => ({ ...f, age: Number(e.target.value) }))}
-                      className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:border-primary focus:outline-hidden"
+                      onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))}
+                      onFocus={selectOnFocus}
+                      placeholder="e.g. 28"
+                      className={inputClass('age')}
                     />
+                    {showError('age') && <p className="text-[10px] font-medium text-rose-500">{showError('age')}</p>}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-foreground">Agreed Price (₹)</label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={form.agreedPrice}
-                      onChange={(e) => setForm((f) => ({ ...f, agreedPrice: Number(e.target.value) }))}
-                      placeholder="0"
-                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
-                    />
-                    <p className="text-[10px] text-muted-foreground">
-                      Defaults to the plan's list price — override for negotiated, discounted, or free (₹0) memberships.
-                    </p>
+                    <label className="text-xs font-semibold text-foreground">Agreed Price</label>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        ₹
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={form.agreedPrice}
+                        onChange={(e) => setForm((f) => ({ ...f, agreedPrice: e.target.value }))}
+                        onFocus={selectOnFocus}
+                        placeholder="0"
+                        className={`${inputClass('agreedPrice')} pl-7`}
+                      />
+                    </div>
+                    {showError('agreedPrice') ? (
+                      <p className="text-[10px] font-medium text-rose-500">{showError('agreedPrice')}</p>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground">
+                        Defaults to the plan's list price — override for negotiated, discounted, or free (₹0) memberships.
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-foreground">Due Amount (₹, optional)</label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={form.dueAmount}
-                      onChange={(e) => setForm((f) => ({ ...f, dueAmount: Number(e.target.value) }))}
-                      placeholder="0"
-                      className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden focus:ring-2 focus:ring-primary/20"
-                    />
+                    <label className="text-xs font-semibold text-foreground">Due Amount</label>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        ₹
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={form.dueAmount}
+                        onChange={(e) => setForm((f) => ({ ...f, dueAmount: e.target.value }))}
+                        onFocus={selectOnFocus}
+                        placeholder="0"
+                        className={`${inputClass('dueAmount')} pl-7`}
+                      />
+                    </div>
+                    {showError('dueAmount') ? (
+                      <p className="text-[10px] font-medium text-rose-500">{showError('dueAmount')}</p>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground">Amount still pending from the member, if any.</p>
+                    )}
                   </div>
+                </div>
+
+                <div className="flex items-center justify-between rounded-xl border border-border/60 bg-accent/40 px-3.5 py-2">
+                  <span className="text-xs font-medium text-muted-foreground">Paid at joining</span>
+                  <span className="text-sm font-bold text-foreground">₹{paidSoFar.toLocaleString('en-IN')}</span>
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-3 border-t border-border/60">

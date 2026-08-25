@@ -38,7 +38,6 @@ import { DietPlansPage } from '../pages/DietPlansPage';
 import { AnalyticsPage } from '../pages/AnalyticsPage';
 import { ReportsPage } from '../pages/ReportsPage';
 import { SubscriptionPage } from '../pages/SubscriptionPage';
-import { SettingsPage } from '../pages/SettingsPage';
 import { ProfilePage } from '../pages/ProfilePage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 
@@ -89,7 +88,6 @@ export const AppRoutes: React.FC = () => {
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/subscription" element={<SubscriptionPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Route>
       </Route>

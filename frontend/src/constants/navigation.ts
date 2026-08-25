@@ -8,9 +8,6 @@ import {
   Utensils,
   BarChart3,
   FileSpreadsheet,
-  Settings,
-  User,
-  HelpCircle,
   RefreshCw,
   MessageSquare,
   ClipboardList,
@@ -98,29 +95,5 @@ export const SIDEBAR_NAV_ITEMS: NavItem[] = [
     href: '/reports',
     icon: FileSpreadsheet,
     description: 'Exportable financial and operational reports',
-  },
-  {
-    title: 'Settings',
-    href: '/settings',
-    icon: Settings,
-    description: 'Tenant preferences, branding, and system configs',
-  },
-];
-
-export const USER_NAV_ITEMS: NavItem[] = [
-  {
-    title: 'Profile',
-    href: '/profile',
-    icon: User,
-  },
-  {
-    title: 'Settings',
-    href: '/settings',
-    icon: Settings,
-  },
-  {
-    title: 'Help & Support',
-    href: '/settings',
-    icon: HelpCircle,
   },
 ];

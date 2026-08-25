@@ -1,8 +1,10 @@
 import { z } from 'zod';
 
+const phoneSchema = z.string().regex(/^\d{10}$/, 'Phone must be exactly 10 digits');
+
 export const createEnquirySchema = z.object({
   name: z.string().min(2, 'Name is required'),
-  phone: z.string().min(6, 'Phone is required'),
+  phone: phoneSchema,
   email: z.string().email().optional().or(z.literal('')),
   source: z.enum(['Walk-in', 'Phone Call', 'Instagram', 'Referral', 'Website', 'Facebook']),
   interestedPlan: z.string().optional().default(''),
@@ -16,7 +18,7 @@ export type CreateEnquiryInput = z.infer<typeof createEnquirySchema>;
 
 export const updateEnquirySchema = z.object({
   name: z.string().min(2).optional(),
-  phone: z.string().min(6).optional(),
+  phone: phoneSchema.optional(),
   email: z.string().email().optional().or(z.literal('')),
   source: z.enum(['Walk-in', 'Phone Call', 'Instagram', 'Referral', 'Website', 'Facebook']).optional(),
   interestedPlan: z.string().optional(),
