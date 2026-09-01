@@ -59,7 +59,7 @@ export interface ReminderHistoryItem {
   category: string;
   message: string;
   sentAt: string;
-  status: 'Delivered' | 'Sent' | 'Failed';
+  status: 'Delivered' | 'Sent' | 'Failed' | 'Skipped';
 }
 
 /* Canned WhatsApp message templates offered in the Reminder Center's composer.

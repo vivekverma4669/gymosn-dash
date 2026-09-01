@@ -16,6 +16,7 @@ interface AuthContextType {
   gymView: GymViewSession | null;
   viewGymAsOwner: (gymId: string) => Promise<AuthUser>;
   exitGymView: () => void;
+  updateUser: (user: AuthUser) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -94,9 +95,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setGymView(null);
   }, []);
 
+  const updateUser = useCallback((updated: AuthUser): void => {
+    setUser(updated);
+  }, []);
+
   const value = useMemo(
-    () => ({ user, isLoading, login, systemLogin, logout, gymView, viewGymAsOwner, exitGymView }),
-    [user, isLoading, login, systemLogin, logout, gymView, viewGymAsOwner, exitGymView]
+    () => ({ user, isLoading, login, systemLogin, logout, gymView, viewGymAsOwner, exitGymView, updateUser }),
+    [user, isLoading, login, systemLogin, logout, gymView, viewGymAsOwner, exitGymView, updateUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

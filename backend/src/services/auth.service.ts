@@ -1,7 +1,9 @@
+import bcrypt from 'bcryptjs';
 import { User } from '../models/User.model';
 import { ApiError } from '../common/ApiError';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/token';
 import { sanitizeUser } from '../utils/sanitizeUser';
+import { UpdateProfileInput, ChangePasswordInput } from '../validators/auth.validator';
 
 export const login = async (email: string, password: string) => {
   const user = await User.findOne({ email: email.toLowerCase() });
@@ -71,4 +73,32 @@ export const getMe = async (userId: string) => {
     throw ApiError.unauthorized();
   }
   return sanitizeUser(user);
+};
+
+export const updateProfile = async (userId: string, input: UpdateProfileInput) => {
+  const user = await User.findById(userId);
+  if (!user || !user.isActive) {
+    throw ApiError.unauthorized();
+  }
+
+  user.name = input.name;
+  await user.save();
+
+  return sanitizeUser(user);
+};
+
+export const changePassword = async (userId: string, input: ChangePasswordInput): Promise<void> => {
+  const user = await User.findById(userId);
+  if (!user || !user.isActive) {
+    throw ApiError.unauthorized();
+  }
+
+  const valid = await user.comparePassword(input.currentPassword);
+  if (!valid) {
+    throw ApiError.badRequest('Current password is incorrect');
+  }
+
+  user.passwordHash = await bcrypt.hash(input.newPassword, 10);
+  user.tokenVersion += 1;
+  await user.save();
 };

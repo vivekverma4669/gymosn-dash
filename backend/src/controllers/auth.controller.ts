@@ -53,3 +53,13 @@ export const me = asyncHandler(async (req: Request, res: Response) => {
   const user = await authService.getMe(req.user!.id);
   return ApiResponse.success(res, { message: 'Current user', data: user });
 });
+
+export const updateProfile = asyncHandler(async (req: Request, res: Response) => {
+  const user = await authService.updateProfile(req.user!.id, req.body);
+  return ApiResponse.success(res, { message: 'Profile updated', data: user });
+});
+
+export const changePassword = asyncHandler(async (req: Request, res: Response) => {
+  await authService.changePassword(req.user!.id, req.body);
+  return ApiResponse.success(res, { message: 'Password changed' });
+});

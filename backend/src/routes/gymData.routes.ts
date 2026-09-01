@@ -8,6 +8,7 @@ import * as workoutPlanController from '../controllers/workoutPlan.controller';
 import * as dietPlanController from '../controllers/dietPlan.controller';
 import * as analyticsController from '../controllers/analytics.controller';
 import * as reportsController from '../controllers/reports.controller';
+import * as reminderController from '../controllers/reminder.controller';
 import { authenticate } from '../middlewares/authenticate.middleware';
 import { authorize } from '../middlewares/authorize.middleware';
 import { validate } from '../middlewares/validate.middleware';
@@ -18,6 +19,7 @@ import { checkInSchema } from '../validators/attendance.validator';
 import { createPaymentSchema } from '../validators/payment.validator';
 import { createWorkoutPlanSchema, updateWorkoutPlanSchema } from '../validators/workoutPlan.validator';
 import { createDietPlanSchema, updateDietPlanSchema } from '../validators/dietPlan.validator';
+import { sendReminderSchema } from '../validators/reminder.validator';
 
 const router = Router();
 
@@ -67,5 +69,9 @@ router.get('/analytics', analyticsController.getAnalytics);
 
 // Reports
 router.get('/reports', reportsController.getReport);
+
+// Reminders (manual WhatsApp sends from the Reminder Center + their history)
+router.post('/reminders/send', validate(sendReminderSchema), reminderController.sendReminders);
+router.get('/reminders/history', reminderController.listReminderHistory);
 
 export default router;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../components/common/PageHeader';
 import { MOCK_REMINDER_TEMPLATES, ReminderHistoryItem } from '../constants/mockData';
 import { Member } from '../constants/mockData';
@@ -14,10 +14,33 @@ import {
   CheckSquare,
   Square,
   Wand2,
+  AlertCircle,
+  Ban,
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 
 type Category = 'Membership Expiry' | 'Fee Reminder' | 'Birthday Wishes' | 'Missed Attendance' | 'Custom Reminder';
+
+const CATEGORY_TO_BACKEND: Record<Category, string> = {
+  'Membership Expiry': 'RENEWAL',
+  'Fee Reminder': 'FEE_REMINDER',
+  'Birthday Wishes': 'BIRTHDAY',
+  'Missed Attendance': 'MISSED_ATTENDANCE',
+  'Custom Reminder': 'CUSTOM',
+};
+
+const BACKEND_TO_CATEGORY_LABEL: Record<string, string> = {
+  RENEWAL: 'Membership Expiry',
+  FEE_REMINDER: 'Fee Reminder',
+  BIRTHDAY: 'Birthday Wishes',
+  MISSED_ATTENDANCE: 'Missed Attendance',
+  CUSTOM: 'Custom Reminder',
+};
+
+interface SendReminderResponse {
+  tally: { sent: number; skipped: number; failed: number };
+  history: ReminderHistoryItem[];
+}
 
 const daysSinceLastCheckIn = (lastCheckIn: string): number =>
   lastCheckIn === '-' ? Infinity : Math.floor((Date.now() - new Date(lastCheckIn).getTime()) / (1000 * 60 * 60 * 24));
@@ -50,13 +73,43 @@ export const ReminderCenterPage: React.FC = () => {
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('T-01');
   const [customMessage, setCustomMessage] = useState<string>(MOCK_REMINDER_TEMPLATES[0].templateText);
-  const [history, setHistory] = useState<ReminderHistoryItem[]>([]);
-  const [isSending, setIsSending] = useState(false);
   const [waModalData, setWaModalData] = useState<{ name: string; phone: string; message: string } | null>(null);
+  const [sendBanner, setSendBanner] = useState<{ type: 'success' | 'warning' | 'error'; text: string } | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: members, isLoading } = useQuery({
     queryKey: ['gym', 'members'],
     queryFn: () => api.get<Member[]>('/api/gym/members'),
+  });
+
+  const { data: historyData, isLoading: isHistoryLoading } = useQuery({
+    queryKey: ['gym', 'reminders', 'history'],
+    queryFn: () => api.get<ReminderHistoryItem[]>('/api/gym/reminders/history'),
+  });
+
+  const history = historyData ?? [];
+
+  const sendRemindersMutation = useMutation({
+    mutationFn: (payload: { category: string; recipients: { memberId: string; message: string }[] }) =>
+      api.post<SendReminderResponse>('/api/gym/reminders/send', payload),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['gym', 'reminders', 'history'] });
+      setSelectedMemberIds([]);
+      const { sent, skipped, failed } = result.tally;
+      if (failed > 0) {
+        setSendBanner({ type: 'error', text: `${sent} sent, ${skipped} skipped, ${failed} failed to send.` });
+      } else if (skipped > 0) {
+        setSendBanner({
+          type: 'warning',
+          text: `Logged ${skipped} reminder(s), but WhatsApp isn't configured yet so nothing was actually delivered — set WHATSAPP_API_URL/WHATSAPP_API_KEY on the backend.`,
+        });
+      } else {
+        setSendBanner({ type: 'success', text: `Successfully dispatched ${sent} WhatsApp reminder(s)!` });
+      }
+    },
+    onError: (err) => {
+      setSendBanner({ type: 'error', text: err instanceof Error ? err.message : 'Failed to send reminders' });
+    },
   });
 
   const memberList = members ?? [];
@@ -90,26 +143,17 @@ export const ReminderCenterPage: React.FC = () => {
 
   const handleSendBatchReminders = () => {
     if (selectedMemberIds.length === 0) return;
-    setIsSending(true);
+    setSendBanner(null);
 
-    setTimeout(() => {
-      const newHistoryItems: ReminderHistoryItem[] = selectedMemberIds.map((id, index) => {
-        const member = memberList.find((m) => m.id === id);
-        return {
-          id: `HIST-${Date.now()}-${index}`,
-          recipientName: member?.name || 'Member',
-          phone: member?.phone || '',
-          category: activeCategory,
-          message: member ? buildMessage(customMessage, member) : customMessage,
-          sentAt: 'Just now',
-          status: 'Delivered',
-        };
-      });
+    const recipients = selectedMemberIds.map((id) => {
+      const member = memberList.find((m) => m.id === id);
+      return {
+        memberId: id,
+        message: member ? buildMessage(customMessage, member) : customMessage,
+      };
+    });
 
-      setHistory((prev) => [...newHistoryItems, ...prev]);
-      setIsSending(false);
-      alert(`Successfully dispatched ${selectedMemberIds.length} WhatsApp reminders!`);
-    }, 1000);
+    sendRemindersMutation.mutate({ category: CATEGORY_TO_BACKEND[activeCategory], recipients });
   };
 
   return (
@@ -293,14 +337,34 @@ export const ReminderCenterPage: React.FC = () => {
 
                 <button
                   onClick={handleSendBatchReminders}
-                  disabled={selectedMemberIds.length === 0 || isSending}
+                  disabled={selectedMemberIds.length === 0 || sendRemindersMutation.isPending}
                   className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-40"
                 >
                   <Send className="h-4 w-4" />
-                  {isSending ? 'Sending...' : 'Send WhatsApp Blast'}
+                  {sendRemindersMutation.isPending ? 'Sending...' : 'Send WhatsApp Blast'}
                 </button>
               </div>
             </div>
+
+            {sendBanner && (
+              <div
+                className={cn(
+                  'flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-medium',
+                  sendBanner.type === 'success' && 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600',
+                  sendBanner.type === 'warning' && 'border-amber-500/30 bg-amber-500/10 text-amber-600',
+                  sendBanner.type === 'error' && 'border-rose-500/30 bg-rose-500/10 text-rose-500'
+                )}
+              >
+                {sendBanner.type === 'success' ? (
+                  <CheckCheck className="h-4 w-4 shrink-0" />
+                ) : sendBanner.type === 'warning' ? (
+                  <Ban className="h-4 w-4 shrink-0" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                )}
+                {sendBanner.text}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -312,12 +376,14 @@ export const ReminderCenterPage: React.FC = () => {
             <Clock className="h-4 w-4 text-muted-foreground" />
             <h3 className="font-bold text-foreground text-sm">Recent Reminders History</h3>
           </div>
-          <span className="text-xs text-muted-foreground">{history.length} reminders logged this session</span>
+          <span className="text-xs text-muted-foreground">{history.length} reminders logged</span>
         </div>
 
-        {history.length === 0 ? (
+        {isHistoryLoading ? (
+          <p className="py-6 text-center text-xs text-muted-foreground">Loading history...</p>
+        ) : history.length === 0 ? (
           <p className="py-6 text-center text-xs text-muted-foreground">
-            No reminders sent yet this session — dispatch a WhatsApp blast to see it logged here.
+            No reminders sent yet — dispatch a WhatsApp blast to see it logged here.
           </p>
         ) : (
           <div className="divide-y divide-border/40 max-h-[280px] overflow-y-auto">
@@ -328,16 +394,34 @@ export const ReminderCenterPage: React.FC = () => {
                     <span className="font-bold text-xs text-foreground">{item.recipientName}</span>
                     <span className="text-[10px] text-muted-foreground">{item.phone}</span>
                     <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                      {item.category}
+                      {BACKEND_TO_CATEGORY_LABEL[item.category] ?? item.category}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground line-clamp-1">{item.message}</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-500">
-                    <CheckCheck className="h-3.5 w-3.5" /> {item.status}
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1 text-xs font-bold',
+                      item.status === 'Failed'
+                        ? 'text-rose-500'
+                        : item.status === 'Skipped'
+                        ? 'text-amber-500'
+                        : 'text-emerald-500'
+                    )}
+                  >
+                    {item.status === 'Failed' ? (
+                      <AlertCircle className="h-3.5 w-3.5" />
+                    ) : item.status === 'Skipped' ? (
+                      <Ban className="h-3.5 w-3.5" />
+                    ) : (
+                      <CheckCheck className="h-3.5 w-3.5" />
+                    )}
+                    {item.status}
                   </span>
-                  <p className="text-[10px] text-muted-foreground">{item.sentAt}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {new Date(item.sentAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                  </p>
                 </div>
               </div>
             ))}
