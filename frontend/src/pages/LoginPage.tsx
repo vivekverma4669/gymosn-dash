@@ -92,6 +92,25 @@ export const LoginPage: React.FC = () => {
           </button>
         </form>
 
+        <div className="rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground">
+          <div className="flex items-center justify-between gap-2">
+            <span>
+              <span className="font-semibold text-foreground">Demo credentials:</span>{' '}
+              viveksonitech@gmail.com / 12345678
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('viveksonitech@gmail.com');
+                setPassword('12345678');
+              }}
+              className="shrink-0 rounded-lg border border-border bg-background px-2 py-1 text-[11px] font-semibold text-foreground hover:bg-muted"
+            >
+              Use demo
+            </button>
+          </div>
+        </div>
+
         <div className="border-t border-border/60 pt-4 text-center text-xs text-muted-foreground">
           Gym accounts are provisioned by your platform administrator.
         </div>
