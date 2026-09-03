@@ -23,6 +23,8 @@ export interface SessionPayload {
   accessToken: string;
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+
 let accessToken: string | null = null;
 let onSessionExpired: (() => void) | null = null;
 
@@ -38,7 +40,7 @@ export const setSessionExpiredHandler = (fn: (() => void) | null): void => {
 
 export const refreshSession = async (): Promise<SessionPayload | null> => {
   try {
-    const res = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
+    const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, { method: 'POST', credentials: 'include' });
     if (!res.ok) return null;
     const body = (await res.json()) as ApiEnvelope<SessionPayload>;
     if (!body.success || !body.data) return null;
@@ -58,7 +60,7 @@ const request = async <T>(path: string, options: RequestInit = {}, allowRetry = 
     headers.set('Authorization', `Bearer ${accessToken}`);
   }
 
-  const res = await fetch(path, { ...options, headers, credentials: 'include' });
+  const res = await fetch(`${API_BASE_URL}${path}`, { ...options, headers, credentials: 'include' });
 
   if (res.status === 401 && allowRetry) {
     const refreshed = await refreshSession();

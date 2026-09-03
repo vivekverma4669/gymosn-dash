@@ -6,13 +6,16 @@ import { logger } from './utils/logger';
 import { runDailyReminders } from './services/reminderScheduler.service';
 
 const bootstrap = async (): Promise<void> => {
-  await connectDatabase();
-
   const app = createApp();
 
+  // Bind the port before the DB connects so Render's port scan succeeds even
+  // if MongoDB (e.g. Atlas) is slow to respond — Mongoose buffers queries
+  // until the connection is ready, so requests just wait instead of failing.
   app.listen(env.PORT, () => {
     logger.info(`Fitdesk backend listening on http://localhost:${env.PORT}`);
   });
+
+  await connectDatabase();
 
   // Daily at 9:00 AM server time — renewal reminders (3 days before expiry) + birthday wishes,
   // for PROFESSIONAL/ENTERPRISE gyms only. Safe no-op per-message until a WhatsApp provider is configured.
