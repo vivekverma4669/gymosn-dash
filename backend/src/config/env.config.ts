@@ -16,10 +16,12 @@ const envSchema = z.object({
   SUPERADMIN_EMAIL: z.string().email('SUPERADMIN_EMAIL must be a valid email'),
   SUPERADMIN_PASSWORD: z.string().min(8, 'SUPERADMIN_PASSWORD must be at least 8 characters'),
 
-  // WhatsApp Business API (BSP) — optional. Automated reminders/birthday wishes no-op
-  // gracefully until these are set, so the rest of the pipeline can be built ahead of a live account.
-  WHATSAPP_API_URL: z.string().optional(),
-  WHATSAPP_API_KEY: z.string().optional(),
+  // Meta WhatsApp Cloud API — optional. Automated reminders/birthday wishes no-op gracefully
+  // until these are set, so the rest of the pipeline can run ahead of a live account.
+  // Get these from Meta Business Manager > WhatsApp > API Setup after business verification.
+  WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
+  WHATSAPP_ACCESS_TOKEN: z.string().optional(),
+  WHATSAPP_API_VERSION: z.string().default('v21.0'),
 });
 
 const parsed = envSchema.safeParse(process.env);
